@@ -6,6 +6,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { signOut } from "firebase/auth";
 import { auth } from "@/firebase";
+import { useAdmin } from "@/hooks/useAdmin";
 
 export default function Navbar({
   onCategoryClick,
@@ -17,6 +18,7 @@ export default function Navbar({
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const { totalItems } = useCart();
   const { user, loading } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdmin(user);
 
   const handleSignOut = async () => {
     try {
@@ -56,7 +58,9 @@ export default function Navbar({
         </div>
 
         <div className="flex gap-4 items-center">
-          <Link href="/inventory" className="rounded bg-indigo-600 px-3 py-1 text-white hover:bg-indigo-700">Inventory</Link>
+          {!loading && !adminLoading && isAdmin && (
+            <Link href="/inventory" className="rounded bg-indigo-600 px-3 py-1 text-white hover:bg-indigo-700">Inventory</Link>
+          )}
           
           {!loading && (
             <>
@@ -110,33 +114,9 @@ export default function Navbar({
           Home
         </button>
 
-        <div
-          className="relative"
-          onMouseEnter={() => setOpen(true)}
-          onMouseLeave={() => setOpen(false)}
-        >
-          <button>Shop</button>
-          {open && (
-            <div className="absolute top-8 left-0 bg-white border-2 rounded-xl shadow-lg w-52">
-              {[
-                ["season", "Season 25/26"],
-                ["worldcup", "World Cup Jerseys"],
-                ["retro", "Retro Kits"],
-              ].map(([key, label]) => (
-                <div
-                  key={key}
-                  onClick={() => {
-                    onCategoryClick(key);
-                    setOpen(false);
-                  }}
-                  className="px-4 py-3 hover:bg-gray-100 cursor-pointer font-semibold"
-                >
-                  {label}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <Link href="/shop">
+          <button className="hover:underline hover:decoration-2 hover:underline-offset-4 transition-all">Shop</button>
+        </Link>
 
         <button>FAQ</button>
       </nav>
