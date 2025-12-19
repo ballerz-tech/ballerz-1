@@ -45,7 +45,6 @@ export default function InventoryTable() {
     Material: "",
     Price: "",
     Product: "",
-    Size: "M",
     Tag: "",
   });
 
@@ -111,7 +110,6 @@ export default function InventoryTable() {
         Material: form.Material || "",
         Price: form.Price ? Number(form.Price) : undefined,
         Product: form.Product || "",
-        Size: form.Size || "",
         Tag: form.Tag || "",
         createdAt: serverTimestamp(),
       };
@@ -119,7 +117,7 @@ export default function InventoryTable() {
       Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
       await addDoc(collection(db!, 'inventory'), payload);
       setShowAddModal(false);
-      setForm({ Description: "", ID: "", ImageUrl1: "", ImageUrl2: "", ImageUrl3: "", Material: "", Price: "", Product: "", Size: "M", Tag: "" });
+      setForm({ Description: "", ID: "", ImageUrl1: "", ImageUrl2: "", ImageUrl3: "", Material: "", Price: "", Product: "", Tag: "" });
       setError(null);
     } catch (e: any) {
       setError(String(e?.message ?? e));
@@ -164,7 +162,6 @@ export default function InventoryTable() {
                   <div className="text-xs text-slate-400 mt-2">Created: {formatValue(it?.createdAt)}</div>
                   <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-700">
                     <div className="text-sm"><strong className="text-slate-600">Price:</strong> <span className="text-teal-600">{it?.Price ?? "-"}</span></div>
-                    <div className="text-sm"><strong className="text-slate-600">Size:</strong> {it?.Size ?? "-"}</div>
                     <div className="text-sm"><strong className="text-slate-600">Material:</strong> {it?.Material ?? "-"}</div>
                   </div>
                 </div>
@@ -219,21 +216,9 @@ export default function InventoryTable() {
                   <input className="mt-1 w-full rounded border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.Material} onChange={(e) => updateForm('Material', e.target.value)} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs text-slate-600">Size</label>
-                  <select className="mt-1 w-full rounded border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.Size} onChange={(e) => updateForm('Size', e.target.value)}>
-                    <option value="S">S</option>
-                    <option value="M">M</option>
-                    <option value="L">L</option>
-                    <option value="XL">XL</option>
-                    <option value="XXL">XXL</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-600">Tags (semicolon-separated)</label>
-                  <input className="mt-1 w-full rounded border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.Tag} onChange={(e) => updateForm('Tag', e.target.value)} />
-                </div>
+              <div>
+                <label className="block text-xs text-slate-600">Tags (semicolon-separated)</label>
+                <input className="mt-1 w-full rounded border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.Tag} onChange={(e) => updateForm('Tag', e.target.value)} />
               </div>
               <div className="flex justify-end">
                 <button type="submit" className="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">Add Item</button>

@@ -99,12 +99,12 @@ export default function Navbar({
             </>
           )}
           
-          <span className="relative">
+          <Link href="/cart" className="relative font-bold hover:text-indigo-600">
             Cart
             {totalItems > 0 && (
               <sup className="ml-1 text-xs font-bold">{totalItems}</sup>
             )}
-          </span>
+          </Link>
         </div>
       </div>
 
