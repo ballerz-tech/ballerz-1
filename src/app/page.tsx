@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import CategoryCarousel from "@/components/CategoryCarousel";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/firebase";
@@ -14,12 +15,13 @@ type Product = {
   Description: string;
   ImageUrl1: string;
   Price: number;
-  Product: string; // category
+  Product: string;
 };
 
 export default function Home() {
   const router = useRouter();
   const { totalItems, pulse } = useCart();
+  const { user, loading } = useAuth();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
@@ -33,19 +35,28 @@ export default function Home() {
     fetchProducts();
   }, []);
 
-  // 🔍 Local filtering (no redirect)
+  // Local search filtering
   const filtered = search
     ? products.filter(p =>
         p.Description.toLowerCase().includes(search.toLowerCase())
       )
     : products;
 
-  // 📦 Group dynamically by category
+  // Group by category
   const grouped = filtered.reduce<Record<string, Product[]>>((acc, p) => {
     acc[p.Product] = acc[p.Product] || [];
     acc[p.Product].push(p);
     return acc;
   }, {});
+
+  // Orders button handler
+  const handleOrdersClick = () => {
+    if (!user) {
+      router.push("/sign-in"); // ✅ correct route
+    } else {
+      router.push("/orders");
+    }
+  };
 
   return (
     <>
@@ -64,7 +75,22 @@ export default function Home() {
       <footer className="mt-32 py-6 text-center font-bold border-t">
         © 2025 Ballerz. All rights reserved.
       </footer>
-      <Link href="/cart" className={`fixed right-6 bottom-6 z-40 rounded-full bg-indigo-600 p-3 text-white shadow-xl hover:bg-indigo-700 transition-all ${pulse ? "ring-4 ring-indigo-300 animate-pulse" : ""}`}>
+
+      {/* Orders Button */}
+      <button
+        onClick={handleOrdersClick}
+        className="fixed right-6 bottom-20 z-40 rounded-full bg-black px-4 py-3 text-white shadow-xl hover:bg-gray-800 font-bold"
+      >
+        Orders
+      </button>
+
+      {/* Cart Button */}
+      <Link
+        href="/cart"
+        className={`fixed right-6 bottom-6 z-40 rounded-full bg-indigo-600 p-3 text-white shadow-xl hover:bg-indigo-700 transition-all ${
+          pulse ? "ring-4 ring-indigo-300 animate-pulse" : ""
+        }`}
+      >
         Cart
       </Link>
     </>
