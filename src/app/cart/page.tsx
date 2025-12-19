@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/firebase";
 import {
@@ -62,6 +63,7 @@ const formatCurrency = (n: number) => {
 
 export default function CartPage() {
   const { user, loading } = useAuth();
+  const router = useRouter();
   const [items, setItems] = useState<CartItem[]>([]);
   const [loadingItems, setLoadingItems] = useState(true);
   const [inventoryMap, setInventoryMap] = useState<Record<string, any>>({});
@@ -257,7 +259,7 @@ export default function CartPage() {
           <div className="mt-6 flex items-center justify-between border-t pt-4">
           <div className="text-xl font-bold">Cart Total: {formatCurrency(grandTotal)}</div>
           <div>
-            <button className="bg-indigo-600 text-white px-4 py-2 rounded">Checkout</button>
+            <button className="bg-indigo-600 text-white px-4 py-2 rounded" onClick={() => router.push('/checkout')}>Checkout</button>
           </div>
           </div>
         </>

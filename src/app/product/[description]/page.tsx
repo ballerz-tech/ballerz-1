@@ -300,6 +300,22 @@ export default function ProductDetail() {
               >
                 Add to Cart
               </button>
+              <button
+                onClick={() => {
+                  // Navigate to checkout with a buyNow payload so only this item is checked out
+                  const payload = {
+                    ID: product.ID,
+                    Quantity: pendingQty,
+                    Size: selectedSize,
+                  };
+                  const qs = encodeURIComponent(JSON.stringify(payload));
+                  router.push(`/checkout?buyNow=${qs}`);
+                }}
+                className={`w-full py-4 bg-indigo-600 text-white rounded-lg font-bold text-lg hover:bg-indigo-700 transition-colors mt-2 ${!selectedSize ? "opacity-50 cursor-not-allowed" : ""}`}
+                disabled={!selectedSize}
+              >
+                Buy Now
+              </button>
             </div>
           </div>
         </div>
