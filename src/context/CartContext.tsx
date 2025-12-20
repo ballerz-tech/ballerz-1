@@ -90,7 +90,15 @@ export function useCart() {
 
 
 // Guest-cart helpers (read/delete/write) using cookie storage.
-export function readGuestCartFromCookie(): Array<{ ID: string | number; Quantity: number; Size?: string; AddedOn?: any }> {
+export function readGuestCartFromCookie(): Array<{ 
+  ID: string | number; 
+  Quantity: number; 
+  Size?: string; 
+  AddedOn?: any;
+  isCustomized?: boolean;
+  customizationText?: string;
+  customPrice?: number;
+}> {
   if (typeof document === "undefined") return [];
   try {
     const match = document.cookie.match('(^|;)\\s*' + "guest_cart" + "=([^;]+)");
@@ -103,7 +111,15 @@ export function readGuestCartFromCookie(): Array<{ ID: string | number; Quantity
   }
 }
 
-export function writeGuestCartToCookie(cartArray: Array<{ ID: string | number; Quantity: number; Size?: string; AddedOn?: any }>, days = 30) {
+export function writeGuestCartToCookie(cartArray: Array<{ 
+  ID: string | number; 
+  Quantity: number; 
+  Size?: string; 
+  AddedOn?: any;
+  isCustomized?: boolean;
+  customizationText?: string;
+  customPrice?: number;
+}>, days = 30) {
   if (typeof document === "undefined") return;
   try {
     const d = new Date();

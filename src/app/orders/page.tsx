@@ -30,6 +30,9 @@ type OrderItem = {
   ID: number | string;
   Quantity: number;
   Size?: string;
+  isCustomized?: boolean;
+  customizationText?: string;
+  customPrice?: number;
   product?: {
     Description?: string;
     Product?: string;
@@ -90,33 +93,47 @@ export default function OrdersPage() {
     const cartRef = collection(db, "Cart");
 
     for (const item of items) {
-      const q = query(
-        cartRef,
-        where("UserMail", "==", user.email),
-        where("ID", "==", item.ID),
-        where("Size", "==", (item.Size || "S"))
-      );
+      const cartItemData = {
+        ID: item.ID,
+        Quantity: item.Quantity,
+        Size: item.Size || "S",
+        UserMail: user.email,
+        ["Added On"]: serverTimestamp(),
+        ...(item.isCustomized && {
+          isCustomized: true,
+          customizationText: item.customizationText,
+          customPrice: item.customPrice || 0
+        })
+      };
 
-      const snap = await getDocs(q);
-
-      if (!snap.empty) {
-        // Update existing cart item
-        const docRef = snap.docs[0].ref;
-        const prevQty = snap.docs[0].data().Quantity || 0;
-
-        await updateDoc(docRef, {
-          Quantity: prevQty + item.Quantity,
-          ["Added On"]: serverTimestamp(),
-        });
+      // For customized items, always add as new entry
+      if (item.isCustomized) {
+        await addDoc(cartRef, cartItemData);
       } else {
-        // Add new cart item
-        await addDoc(cartRef, {
-          ID: item.ID,
-          Quantity: item.Quantity,
-          Size: item.Size || "S",
-          UserMail: user.email,
-          ["Added On"]: serverTimestamp(),
-        });
+        // For non-customized items, try to merge with existing
+        const q = query(
+          cartRef,
+          where("UserMail", "==", user.email),
+          where("ID", "==", item.ID),
+          where("Size", "==", (item.Size || "S")),
+          where("isCustomized", "==", false)
+        );
+
+        const snap = await getDocs(q);
+
+        if (!snap.empty) {
+          // Update existing cart item
+          const docRef = snap.docs[0].ref;
+          const prevQty = snap.docs[0].data().Quantity || 0;
+
+          await updateDoc(docRef, {
+            Quantity: prevQty + item.Quantity,
+            ["Added On"]: serverTimestamp(),
+          });
+        } else {
+          // Add new cart item
+          await addDoc(cartRef, { ...cartItemData, isCustomized: false });
+        }
       }
 
       // Update cart badge UI
@@ -194,20 +211,36 @@ export default function OrdersPage() {
 
               {/* Items */}
               <div className="space-y-2">
-                {order.items.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex justify-between text-sm font-medium"
-                  >
-                    <span>
-                      {item.product?.Description ?? "Product"} ×{" "}
-                      {item.Quantity}
-                    </span>
-                    <span>
-                      Rs. {(item.product?.Price ?? 0) * item.Quantity}
-                    </span>
-                  </div>
-                ))}
+                {order.items.map((item, idx) => {
+                  const basePrice = (item.product?.Price ?? 0);
+                  const customPrice = item.isCustomized && item.customPrice ? item.customPrice : 0;
+                  const totalPrice = basePrice + customPrice;
+                  const itemTotal = totalPrice * item.Quantity;
+                  
+                  return (
+                    <div key={idx} className="space-y-1">
+                      <div className="flex justify-between text-sm font-medium">
+                        <span>
+                          {item.product?.Description ?? "Product"} ×{" "}
+                          {item.Quantity}
+                        </span>
+                        <span>Rs. {itemTotal}</span>
+                      </div>
+                      {item.isCustomized && (
+                        <div className="ml-4 p-2 bg-blue-50 rounded border border-blue-200">
+                          <p className="text-xs font-medium text-blue-800">
+                            Customized: "{item.customizationText}"
+                          </p>
+                          {customPrice > 0 && (
+                            <p className="text-xs text-blue-600">
+                              +Rs. {customPrice} customization fee
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Total */}

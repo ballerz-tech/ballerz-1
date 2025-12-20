@@ -21,6 +21,9 @@ type Product = {
   Size: string;
   Tag: string;
   createdAt: any;
+  Customize?: boolean;
+  CustomText?: string;
+  customprice?: number;
 };
 
 export default function ProductDetail() {
@@ -34,6 +37,8 @@ export default function ProductDetail() {
   const [selectedSize, setSelectedSize] = useState<string>("S");
   const [pendingQty, setPendingQty] = useState<number>(1);
   const [inCartCount, setInCartCount] = useState<number>(0);
+  const [wantsCustomization, setWantsCustomization] = useState<boolean>(false);
+  const [customizationText, setCustomizationText] = useState<string>("");
 
   const description = decodeURIComponent(params.description as string);
   const productId = product?.ID.toString() || "";
@@ -184,8 +189,57 @@ export default function ProductDetail() {
             </div>
 
 
-            <div className="text-3xl font-bold">₹{product.Price}</div>
+            <div className="text-3xl font-bold">
+              ₹{product.Price}
+              {product.Customize && wantsCustomization && product.customprice && (
+                <span className="text-lg text-gray-600 ml-2">
+                  + ₹{product.customprice} (customization)
+                </span>
+              )}
+            </div>
 
+            {/* Customization Section */}
+            {product.Customize && (
+              <div className="space-y-4 border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="customize"
+                    checked={wantsCustomization}
+                    onChange={(e) => {
+                      setWantsCustomization(e.target.checked);
+                      if (!e.target.checked) {
+                        setCustomizationText("");
+                      }
+                    }}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="customize" className="font-semibold text-gray-900">
+                    {product.CustomText || "Add customization"}
+                  </label>
+                  {product.customprice && (
+                    <span className="text-sm font-medium text-gray-600">
+                      (+₹{product.customprice})
+                    </span>
+                  )}
+                </div>
+                {wantsCustomization && (
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Enter your customization text..."
+                      value={customizationText}
+                      onChange={(e) => setCustomizationText(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      maxLength={50}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {customizationText.length}/50 characters
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Product Info */}
             <div className="space-y-3 border-y-2 py-6">
@@ -249,26 +303,52 @@ export default function ProductDetail() {
               <button
                 onClick={async () => {
                   if (!selectedSize) return;
+                  if (product.Customize && wantsCustomization && !customizationText.trim()) {
+                    alert("Please enter your customization text");
+                    return;
+                  }
+                  
                   // optimistic UI
                   setInCartCount((p) => p + pendingQty);
+
+                  const cartItemData = {
+                    ["Added On"]: serverTimestamp(),
+                    ID: product.ID,
+                    Quantity: pendingQty,
+                    Size: selectedSize,
+                    UserMail: user?.email,
+                    ...(wantsCustomization && {
+                      isCustomized: true,
+                      customizationText: customizationText.trim(),
+                      customPrice: product.customprice || 0
+                    })
+                  };
 
                   // If user is signed in, persist to Firestore Cart collection
                   if (user && user.email) {
                     try {
                       const colRef = collection(db, "Cart");
-                      const q = query(colRef, where("UserMail", "==", user.email), where("ID", "==", product.ID), where("Size", "==", selectedSize));
-                      const snap = await getDocs(q);
-                      if (!snap.empty) {
-                        const d = snap.docs[0];
-                        const existing = d.data() as any;
-                        const newQty = (existing.Quantity || 0) + pendingQty;
-                        await updateDoc(d.ref, { Quantity: newQty, ["Added On"]: serverTimestamp() });
+                      // For customized items, always create a new cart entry
+                      if (wantsCustomization) {
+                        await addDoc(colRef, cartItemData);
                       } else {
-                        await addDoc(colRef, { ["Added On"]: serverTimestamp(), ID: product.ID, Quantity: pendingQty, Size: selectedSize, UserMail: user.email });
+                        // For non-customized items, check if similar item exists
+                        const q = query(colRef, where("UserMail", "==", user.email), where("ID", "==", product.ID), where("Size", "==", selectedSize), where("isCustomized", "==", false));
+                        const snap = await getDocs(q);
+                        if (!snap.empty) {
+                          const d = snap.docs[0];
+                          const existing = d.data() as any;
+                          const newQty = (existing.Quantity || 0) + pendingQty;
+                          await updateDoc(d.ref, { Quantity: newQty, ["Added On"]: serverTimestamp() });
+                        } else {
+                          await addDoc(colRef, { ...cartItemData, isCustomized: false });
+                        }
                       }
                       // reflect in local context
                       for (let i = 0; i < pendingQty; i++) addItem(productId);
                       setPendingQty(1);
+                      setWantsCustomization(false);
+                      setCustomizationText("");
                     } catch (e) {
                       console.error("Failed to write cart to Firestore:", e);
                       // rollback optimistic count
@@ -280,16 +360,41 @@ export default function ProductDetail() {
                   // guest: update cookie and local context
                   try {
                     const guestArr = readGuestCartFromCookie();
-                    const idx = guestArr.findIndex((it) => String(it.ID) === String(product.ID) && (it.Size || "S") === selectedSize);
-                    if (idx >= 0) {
-                      guestArr[idx].Quantity = Number(guestArr[idx].Quantity || 0) + pendingQty;
-                      guestArr[idx].AddedOn = new Date().toISOString();
+                    const guestCartItem = {
+                      ID: product.ID,
+                      Quantity: pendingQty,
+                      Size: selectedSize,
+                      AddedOn: new Date().toISOString(),
+                      ...(wantsCustomization && {
+                        isCustomized: true,
+                        customizationText: customizationText.trim(),
+                        customPrice: product.customprice || 0
+                      })
+                    };
+                    
+                    if (wantsCustomization) {
+                      // Always add as new item for customized products
+                      guestArr.push(guestCartItem);
                     } else {
-                      guestArr.push({ ID: product.ID, Quantity: pendingQty, Size: selectedSize, AddedOn: new Date().toISOString() });
+                      // For non-customized items, check if similar item exists
+                      const idx = guestArr.findIndex((it) => 
+                        String(it.ID) === String(product.ID) && 
+                        (it.Size || "S") === selectedSize &&
+                        !it.isCustomized
+                      );
+                      if (idx >= 0) {
+                        guestArr[idx].Quantity = Number(guestArr[idx].Quantity || 0) + pendingQty;
+                        guestArr[idx].AddedOn = new Date().toISOString();
+                      } else {
+                        guestArr.push({ ...guestCartItem, isCustomized: false });
+                      }
                     }
+                    
                     writeGuestCartToCookie(guestArr);
                     for (let i = 0; i < pendingQty; i++) addItem(productId);
                     setPendingQty(1);
+                    setWantsCustomization(false);
+                    setCustomizationText("");
                   } catch (e) {
                     console.error("Failed to update guest cookie:", e);
                     setInCartCount((p) => Math.max(0, p - pendingQty));
@@ -302,17 +407,27 @@ export default function ProductDetail() {
               </button>
               <button
                 onClick={() => {
+                  if (product.Customize && wantsCustomization && !customizationText.trim()) {
+                    alert("Please enter your customization text");
+                    return;
+                  }
+                  
                   // Navigate to checkout with a buyNow payload so only this item is checked out
                   const payload = {
                     ID: product.ID,
                     Quantity: pendingQty,
                     Size: selectedSize,
+                    ...(wantsCustomization && {
+                      isCustomized: true,
+                      customizationText: customizationText.trim(),
+                      customPrice: product.customprice || 0
+                    })
                   };
                   const qs = encodeURIComponent(JSON.stringify(payload));
                   router.push(`/checkout?buyNow=${qs}`);
                 }}
-                className={`w-full py-4 bg-indigo-600 text-white rounded-lg font-bold text-lg hover:bg-indigo-700 transition-colors mt-2 ${!selectedSize ? "opacity-50 cursor-not-allowed" : ""}`}
-                disabled={!selectedSize}
+                className={`w-full py-4 bg-indigo-600 text-white rounded-lg font-bold text-lg hover:bg-indigo-700 transition-colors mt-2 ${!selectedSize || (product.Customize && wantsCustomization && !customizationText.trim()) ? "opacity-50 cursor-not-allowed" : ""}`}
+                disabled={!selectedSize || (product.Customize && wantsCustomization && !customizationText.trim())}
               >
                 Buy Now
               </button>

@@ -26,6 +26,9 @@ type OrderItem = {
   ID: number | string;
   Quantity: number;
   Size?: string;
+  isCustomized?: boolean;
+  customizationText?: string;
+  customPrice?: number;
   product?: {
     Description?: string;
     Product?: string;
@@ -265,10 +268,33 @@ export default function OrderManagementPage() {
                             <p className="text-sm text-zinc-600">
                               Size: {item.Size || "N/A"} | Quantity: {item.Quantity}
                             </p>
+                            {item.isCustomized && (
+                              <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                                <p className="text-sm font-medium text-blue-800">
+                                  Customized: "{item.customizationText}"
+                                </p>
+                                {item.customPrice && (
+                                  <p className="text-xs text-blue-600">
+                                    +{formatCurrency(item.customPrice)} customization fee
+                                  </p>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <p className="font-semibold">
-                          {formatCurrency((item.product?.Price || 0) * item.Quantity)}
+                          {(() => {
+                            const basePrice = (item.product?.Price || 0);
+                            const customPrice = item.isCustomized && item.customPrice ? item.customPrice : 0;
+                            const totalPrice = basePrice + customPrice;
+                            const itemTotal = totalPrice * item.Quantity;
+                            return formatCurrency(itemTotal);
+                          })()} 
+                          {item.isCustomized && item.customPrice && (
+                            <span className="text-sm font-normal text-zinc-600">
+                              (Base: {formatCurrency((item.product?.Price || 0) * item.Quantity)} + Custom: {formatCurrency((item.customPrice || 0) * item.Quantity)})
+                            </span>
+                          )}
                         </p>
                       </div>
                     ))}

@@ -39,15 +39,28 @@ export function generateInvoice(order: any) {
   autoTable(doc, {
     startY: 94,
     head: [["Product", "Qty", "Price", "Total"]],
-    body: order.items.map((item: any) => [
-      // ✅ FIX: use Description, NOT Product
-      item.product?.Description ?? "Product",
-      item.Quantity,
-      `Rs. ${item.product?.Price}`,
-      `Rs. ${item.product?.Price * item.Quantity}`,
-    ]),
+    body: order.items.map((item: any) => {
+      const basePrice = item.product?.Price || 0;
+      const customPrice = item.isCustomized && item.customPrice ? item.customPrice : 0;
+      const totalPrice = basePrice + customPrice;
+      const itemTotal = totalPrice * item.Quantity;
+      
+      let productName = item.product?.Description ?? "Product";
+      if (item.isCustomized && item.customizationText) {
+        productName += ` (Custom: "${item.customizationText}")`;
+      }
+      
+      return [
+        productName,
+        item.Quantity,
+        customPrice > 0 
+          ? `Rs. ${basePrice} + Rs. ${customPrice}` 
+          : `Rs. ${basePrice}`,
+        `Rs. ${itemTotal}`,
+      ];
+    }),
     styles: {
-      fontSize: 11,
+      fontSize: 10,
     },
     headStyles: {
       fillColor: [0, 0, 0],

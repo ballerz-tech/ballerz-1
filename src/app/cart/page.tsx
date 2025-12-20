@@ -24,6 +24,9 @@ type CartItem = {
   Size?: string;
   UserMail?: string;
   AddedOn?: any;
+  isCustomized?: boolean;
+  customizationText?: string;
+  customPrice?: number;
 };
 
 function readCookie(name: string) {
@@ -199,9 +202,11 @@ export default function CartPage() {
   }
 
   const grandTotal = items.reduce((sum, it) => {
-    const per = inventoryMap[String(it.ID)]?.Price != null ? Number(inventoryMap[String(it.ID)].Price) : 0;
+    const basePrice = inventoryMap[String(it.ID)]?.Price != null ? Number(inventoryMap[String(it.ID)].Price) : 0;
+    const customPrice = it.isCustomized && it.customPrice ? Number(it.customPrice) : 0;
+    const totalPrice = basePrice + customPrice;
     const qty = Number(it.Quantity || 0);
-    return sum + (isNaN(per) ? 0 : per * qty);
+    return sum + (isNaN(totalPrice) ? 0 : totalPrice * qty);
   }, 0);
 
   return (
@@ -227,6 +232,18 @@ export default function CartPage() {
                   <div>
                     <p className="font-semibold truncate">{prod?.Product ?? `Item ${key}`}</p>
                     {it.Size && <p className="text-lg font-semibold text-gray-700 mt-1">Size: {it.Size}</p>}
+                    {it.isCustomized && (
+                      <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                        <p className="text-sm font-medium text-blue-800">
+                          Customized: "{it.customizationText}"
+                        </p>
+                        {it.customPrice && (
+                          <p className="text-xs text-blue-600">
+                            +{formatCurrency(it.customPrice)} customization fee
+                          </p>
+                        )}
+                      </div>
+                    )}
                     <p className="text-sm text-gray-500">Quantity: {it.Quantity}</p>
                     <p className="text-sm text-slate-700 mt-1">{prod?.Description}</p>
                     {(() => {
@@ -237,12 +254,24 @@ export default function CartPage() {
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   {(() => {
-                    const per = prod?.Price != null ? Number(prod.Price) : null;
+                    const basePrice = prod?.Price != null ? Number(prod.Price) : null;
+                    const customPrice = it.isCustomized && it.customPrice ? Number(it.customPrice) : 0;
                     const qty = Number(it.Quantity || 0);
-                    if (per == null || isNaN(per)) return <div className="text-lg font-semibold">-</div>;
-                    const total = per * qty;
+                    if (basePrice == null || isNaN(basePrice)) return <div className="text-lg font-semibold">-</div>;
+                    const totalPerItem = basePrice + customPrice;
+                    const total = totalPerItem * qty;
                     return (
-                      <div className="text-lg font-semibold">{formatCurrency(total)} <span className="text-sm font-normal">({formatCurrency(per)} per piece)</span></div>
+                      <div className="text-right">
+                        <div className="text-lg font-semibold">{formatCurrency(total)}</div>
+                        <div className="text-sm font-normal text-gray-600">
+                          {formatCurrency(totalPerItem)} per piece
+                          {customPrice > 0 && (
+                            <div className="text-xs text-blue-600">
+                              (Base: {formatCurrency(basePrice)} + Custom: {formatCurrency(customPrice)})
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     );
                   })()}
                   <div className="flex gap-2">

@@ -25,6 +25,9 @@ type CartItem = {
   Size?: string;
   UserMail?: string;
   AddedOn?: any;
+  isCustomized?: boolean;
+  customizationText?: string;
+  customPrice?: number;
 };
 
 type CustomerDetails = {
@@ -113,6 +116,11 @@ export default function CheckoutPage() {
           ID: parsed.ID,
           Quantity: parsed.Quantity || 1,
           Size: parsed.Size,
+          ...(parsed.isCustomized && {
+            isCustomized: true,
+            customizationText: parsed.customizationText,
+            customPrice: parsed.customPrice || 0
+          })
         };
         setItems([single]);
         setIsBuyNow(true);
@@ -195,9 +203,11 @@ export default function CheckoutPage() {
   }, [items]);
 
   const grandTotal = items.reduce((sum, it) => {
-    const per = inventoryMap[String(it.ID)]?.Price != null ? Number(inventoryMap[String(it.ID)].Price) : 0;
+    const basePrice = inventoryMap[String(it.ID)]?.Price != null ? Number(inventoryMap[String(it.ID)].Price) : 0;
+    const customPrice = it.isCustomized && it.customPrice ? Number(it.customPrice) : 0;
+    const totalPrice = basePrice + customPrice;
     const qty = Number(it.Quantity || 0);
-    return sum + (isNaN(per) ? 0 : per * qty);
+    return sum + (isNaN(totalPrice) ? 0 : totalPrice * qty);
   }, 0);
 
   const handleInputChange = (field: keyof CustomerDetails, value: string) => {
@@ -227,8 +237,15 @@ export default function CheckoutPage() {
 
     const orderData = {
       items: items.map(item => ({
-        ...item,
+        ID: item.ID,
+        Quantity: item.Quantity,
+        Size: item.Size,
         product: inventoryMap[String(item.ID)],
+        ...(item.isCustomized && {
+          isCustomized: true,
+          customizationText: item.customizationText,
+          customPrice: item.customPrice || 0
+        })
       })),
       customer: customerDetails,
       total: grandTotal,
@@ -481,9 +498,11 @@ export default function CheckoutPage() {
                 const key = String(item.ID);
                 const prod = inventoryMap[key];
                 const img = prod?.ImageUrl1 || prod?.ImageUrl2 || prod?.ImageUrl3 || "/favicon.ico";
-                const price = prod?.Price != null ? Number(prod.Price) : 0;
+                const basePrice = prod?.Price != null ? Number(prod.Price) : 0;
+                const customPrice = item.isCustomized && item.customPrice ? Number(item.customPrice) : 0;
+                const totalPrice = basePrice + customPrice;
                 const qty = Number(item.Quantity || 0);
-                const total = price * qty;
+                const total = totalPrice * qty;
 
                 return (
                   <div key={String(item.docId ?? item.ID)} className="flex gap-4 items-center border-b pb-4">
@@ -496,11 +515,23 @@ export default function CheckoutPage() {
                       <p className="font-semibold">{prod?.Product ?? `Item ${key}`}</p>
                       <p className="text-sm text-gray-600">{prod?.Description}</p>
                       {item.Size && <p className="text-sm text-gray-600">Size: {item.Size}</p>}
+                      {item.isCustomized && (
+                        <div className="mt-1 p-2 bg-blue-50 rounded border border-blue-200">
+                          <p className="text-sm font-medium text-blue-800">
+                            Customized: "{item.customizationText}"
+                          </p>
+                        </div>
+                      )}
                       <p className="text-sm text-gray-600">Qty: {qty}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-bold">{formatCurrency(total)}</p>
-                      <p className="text-sm text-gray-600">{formatCurrency(price)} each</p>
+                      <p className="text-sm text-gray-600">{formatCurrency(totalPrice)} each</p>
+                      {customPrice > 0 && (
+                        <p className="text-xs text-blue-600">
+                          (Base: {formatCurrency(basePrice)} + Custom: {formatCurrency(customPrice)})
+                        </p>
+                      )}
                     </div>
                   </div>
                 );
