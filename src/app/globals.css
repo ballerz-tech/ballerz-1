@@ -1,13 +1,30 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000000;
+  --foreground: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: #ffffff;   /* FORCE WHITE */
-  color: #000;
-  font-family: var(--font-sans);
-  font-weight: 500;
+  background: #000000;   /* Black background */
+  color: #ffffff;       /* White text */
+  font-family: 'Montserrat', var(--font-montserrat), sans-serif;
+  font-weight: 400;
+}
+
+/* Marquee Animation */
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+  display: inline-block;
 }

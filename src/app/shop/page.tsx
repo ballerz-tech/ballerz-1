@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/firebase";
 import Link from "next/link";
-import Navbar from "@/components/Navbar";
 import { useSearchParams } from "next/navigation";
 
 type Product = {
@@ -39,8 +38,6 @@ export default function ShopPage() {
 
   return (
     <>
-      <Navbar />
-
       <main className="px-10 pt-32 space-y-6">
         <div className="flex gap-4 items-center">
           <select

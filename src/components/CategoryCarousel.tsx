@@ -47,11 +47,14 @@ export default function CategoryCarousel({
 
   return (
     <section className="space-y-6">
-      <h2 className="text-3xl font-extrabold">{title}</h2>
+      <h2 className="text-3xl font-extrabold text-white">{title}</h2>
 
       <div className="relative flex items-center">
         {canSlide && (
-          <button onClick={() => move(-4)} className="text-3xl px-2">
+          <button 
+            onClick={() => move(-4)} 
+            className="text-3xl px-2 text-white hover:text-gray-300 transition-colors"
+          >
             ‹
           </button>
         )}
@@ -61,23 +64,26 @@ export default function CategoryCarousel({
             <Link
               key={p.ID}
               href={`/product/${encodeURIComponent(p.Description)}`}
-              className="border-2 rounded-xl p-4 font-bold hover:shadow-lg transition"
+              className="border-2 border-gray-700 bg-gray-900 rounded-xl p-4 font-bold hover:shadow-lg hover:border-gray-500 hover:bg-gray-800 transition text-white"
             >
-              <div className="aspect-square border rounded mb-3 overflow-hidden">
+              <div className="aspect-square border border-gray-600 rounded mb-3 overflow-hidden">
                 <img
                   src={p.ImageUrl1}
                   alt={p.Description}
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div className="truncate">{p.Description}</div>
-              <div className="mt-1">₹{p.Price}</div>
+              <div className="truncate text-white">{p.Description}</div>
+              <div className="mt-1 text-yellow-400 font-semibold">₹{p.Price}</div>
             </Link>
           ))}
         </div>
 
         {canSlide && (
-          <button onClick={() => move(4)} className="text-3xl px-2">
+          <button 
+            onClick={() => move(4)} 
+            className="text-3xl px-2 text-white hover:text-gray-300 transition-colors"
+          >
             ›
           </button>
         )}
