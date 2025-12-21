@@ -69,9 +69,10 @@ export default function Home() {
           </div>
           
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
             <div className="bg-gray-900 rounded-xl p-6 hover:bg-gray-800 transition-colors">
-              <div className="text-3xl md:text-4xl font-bold text-white mb-2">150,000</div>
+              <div className="text-3xl font-bold text-white mb-2 block md:hidden">150,000</div>
+              <div className="text-4xl font-bold text-white mb-2 hidden md:block">150k</div>
               <div className="text-gray-400 text-sm md:text-base">Monthly Visitors</div>
             </div>
             
@@ -99,7 +100,7 @@ export default function Home() {
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-8">
             Browse By Category
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {categories.map(cat => {
               const images: Record<string, string> = {
                 Football: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQs9bNOBl7Rg_JVso6TEMBOfXKhif96T-Nx-g&s",
@@ -114,14 +115,14 @@ export default function Home() {
                   href={`/shop?category=${encodeURIComponent(cat)}`}
                   className="group block rounded-xl overflow-hidden"
                 >
-                  <div className="relative h-48 md:h-[32rem] bg-gray-900 flex items-center justify-center hover:opacity-95 transition">
+                  <div className="relative h-44 md:h-80 lg:h-96 bg-gray-900 flex items-center justify-center hover:opacity-95 transition">
                     <img
                       src={imgSrc}
                       alt={cat}
                       className="absolute inset-0 w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-base md:text-2xl font-bold text-white drop-shadow-lg uppercase tracking-wide text-center px-2">
+                      <span className="text-base md:text-2xl lg:text-3xl font-bold text-white drop-shadow-lg uppercase tracking-wide text-center px-2">
                         {cat}
                       </span>
                     </div>
@@ -140,12 +141,12 @@ export default function Home() {
             Our Top Picks
           </h2>
           <div className="overflow-hidden">
-            <div className="flex gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-8">
+            <div className="flex gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory lg:grid lg:grid-cols-3 lg:gap-8">
               {products.slice(0, 6).map((p) => (
                 <Link
                   key={p.ID}
                   href={`/product/${encodeURIComponent(p.Description)}`}
-                  className="flex-none w-[280px] md:w-auto border-2 border-gray-700 bg-gray-900 rounded-xl p-4 font-bold hover:shadow-lg hover:border-gray-500 hover:bg-gray-800 transition text-white flex flex-col items-center snap-center"
+                  className="flex-none w-[280px] md:w-[calc(50%-12px)] lg:w-auto border-2 border-gray-700 bg-gray-900 rounded-xl p-4 font-bold hover:shadow-lg hover:border-gray-500 hover:bg-gray-800 transition text-white flex flex-col items-center snap-center"
                 >
                   <div className="aspect-square border border-gray-600 rounded mb-3 overflow-hidden w-full max-w-xs">
                     <img

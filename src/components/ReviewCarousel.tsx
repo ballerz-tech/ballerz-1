@@ -15,11 +15,11 @@ export default function ReviewCarousel() {
       <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-white">Customer Reviews</h2>
       <div className="max-w-6xl mx-auto px-6">
         <div className="overflow-hidden">
-          <div className="flex gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6">
+          <div className="flex gap-6 overflow-x-auto scrollbar-hide snap-x snap-mandatory lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-6">
             {images.map((src, idx) => (
               <div
                 key={idx}
-                className="flex-none w-[280px] md:w-auto rounded-xl overflow-hidden border-4 border-gray-700 bg-gray-900 flex items-center justify-center max-h-[28rem] md:max-h-[36rem] snap-center"
+                className="flex-none w-[280px] md:w-[calc(50%-12px)] lg:w-auto rounded-xl overflow-hidden border-4 border-gray-700 bg-gray-900 flex items-center justify-center max-h-[28rem] md:max-h-[36rem] snap-center"
               >
                 <img 
                   src={src} 
