@@ -18,6 +18,8 @@ export default function ShopPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filter, setFilter] = useState<string | null>(null);
   const [sort, setSort] = useState<string>("relevance");
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
   const [showFilterPopover, setShowFilterPopover] = useState(false);
   const params = useSearchParams();
   const search = params.get("search")?.toLowerCase() || "";
@@ -102,30 +104,80 @@ export default function ShopPage() {
 
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-gray-600 mb-1 block">Category</label>
-                    <select
-                      value={filter ?? ""}
-                      onChange={(e) => setFilter(e.target.value || null)}
-                      className="appearance-none cursor-pointer w-full pl-3 pr-8 py-2 bg-gray-100 border border-gray-300 text-gray-900 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-black"
+                    <button
+                      onClick={() => setCategoryOpen(c => !c)}
+                      className="w-full flex items-center justify-between text-sm text-gray-800 font-medium"
+                      aria-expanded={categoryOpen}
                     >
-                      <option value="">All Categories</option>
-                      {categories.map(c => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
+                      <span className="flex items-baseline gap-2">
+                        <span>Category</span>
+                        <span className="text-xs text-gray-500">{filter ?? "All Categories"}</span>
+                      </span>
+                      <svg className={`w-4 h-4 transform ${categoryOpen ? "rotate-180" : "rotate-0"}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                      </svg>
+                    </button>
+
+                    {categoryOpen && (
+                      <div className="mt-2 bg-gray-50 border border-gray-100 rounded-md p-2 max-h-48 overflow-auto">
+                        <button
+                          onClick={() => { setFilter(null); setCategoryOpen(false); }}
+                          className={`w-full text-left px-2 py-1 rounded-md text-sm ${filter === null ? "bg-black text-white" : "text-gray-800 hover:bg-gray-100"}`}
+                        >
+                          All Categories
+                        </button>
+                        {categories.map(c => (
+                          <button
+                            key={c}
+                            onClick={() => { setFilter(c); setCategoryOpen(false); }}
+                            className={`w-full text-left px-2 py-1 mt-1 rounded-md text-sm ${filter === c ? "bg-black text-white" : "text-gray-800 hover:bg-gray-100"}`}
+                          >
+                            {c}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div>
-                    <label className="text-xs text-gray-600 mb-1 block">Sort</label>
-                    <select
-                      value={sort}
-                      onChange={e => setSort(e.target.value)}
-                      className="appearance-none cursor-pointer w-full pl-3 pr-8 py-2 bg-gray-100 border border-gray-300 text-gray-900 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-black"
+                    <button
+                      onClick={() => setSortOpen(s => !s)}
+                      className="w-full flex items-center justify-between text-sm text-gray-800 font-medium"
+                      aria-expanded={sortOpen}
                     >
-                      <option value="relevance">Sort: Relevance</option>
-                      <option value="price-asc">Price: Low to High</option>
-                      <option value="price-desc">Price: High to Low</option>
-                    </select>
+                      <span className="flex items-baseline gap-2">
+                        <span>Sort</span>
+                        <span className="text-xs text-gray-500">{sort === "price-asc" ? "Price: Low to High" : sort === "price-desc" ? "Price: High to Low" : "Relevance"}</span>
+                      </span>
+                      <svg className={`w-4 h-4 transform ${sortOpen ? "rotate-180" : "rotate-0"}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                      </svg>
+                    </button>
+
+                    {sortOpen && (
+                      <div className="mt-2 bg-gray-50 border border-gray-100 rounded-md p-2">
+                        <button
+                          onClick={() => { setSort("relevance"); setSortOpen(false); }}
+                          className={`w-full text-left px-2 py-1 rounded-md text-sm ${sort === "relevance" ? "bg-black text-white" : "text-gray-800 hover:bg-gray-100"}`}
+                        >
+                          Relevance
+                        </button>
+
+                        <button
+                          onClick={() => { setSort("price-asc"); setSortOpen(false); }}
+                          className={`w-full text-left px-2 py-1 mt-1 rounded-md text-sm ${sort === "price-asc" ? "bg-black text-white" : "text-gray-800 hover:bg-gray-100"}`}
+                        >
+                          Price: Low to High
+                        </button>
+
+                        <button
+                          onClick={() => { setSort("price-desc"); setSortOpen(false); }}
+                          className={`w-full text-left px-2 py-1 mt-1 rounded-md text-sm ${sort === "price-desc" ? "bg-black text-white" : "text-gray-800 hover:bg-gray-100"}`}
+                        >
+                          Price: High to Low
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

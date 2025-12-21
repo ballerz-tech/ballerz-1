@@ -31,6 +31,7 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   // keep input synced when URL changes (for shop page compatibility)
   useEffect(() => {
@@ -64,6 +65,19 @@ export default function Navbar() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [searchMenuOpen]);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    function handleClick(e: MouseEvent) {
+      const userMenuBox = document.getElementById("user-menu");
+      if (userMenuBox && !userMenuBox.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [userMenuOpen]);
 
   // Compute the top offset for the sidebar/backdrop so the menu sits below the header
   useEffect(() => {
@@ -237,6 +251,46 @@ export default function Navbar() {
                 >
                   Shipping Policy
                 </Link>
+              </div>
+
+              {/* Mobile-only user links: My Orders / Sign Out / Sign In */}
+              <div className="md:hidden">
+                {user ? (
+                  <div className="border-t border-gray-200 pt-4 mt-6">
+                    <Link
+                      href="/orders"
+                      className="block py-3 px-4 text-base sm:text-lg text-black hover:bg-gray-100 rounded-md transition-colors min-h-[48px] flex items-center"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        router.push('/orders');
+                      }}
+                    >
+                      My Orders
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        handleSignOut();
+                      }}
+                      className="block w-full text-left py-3 px-4 text-base sm:text-lg text-black hover:bg-gray-100 rounded-md transition-colors min-h-[48px] flex items-center"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                ) : (
+                  <div className="border-t border-gray-200 pt-4 mt-6">
+                    <Link
+                      href="/sign-in"
+                      className="block py-3 px-4 text-base sm:text-lg text-black hover:bg-gray-100 rounded-md transition-colors min-h-[48px] flex items-center"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        window.location.href = '/sign-in';
+                      }}
+                    >
+                      Sign In
+                    </Link>
+                  </div>
+                )}
               </div>
 
               {/* Social Media */}
@@ -477,7 +531,7 @@ export default function Navbar() {
                 Ballerz
               </Link>
             </div>
-            {/* Right side: Only show search and cart on mobile */}
+            {/* Right side: Only show search, user, and cart on mobile */}
             <div className="flex items-center gap-2 sm:gap-3 md:gap-4 h-full">
               {/* 🔍 Search */}
               <div className="flex justify-center relative" id="navbar-search-box">
@@ -503,6 +557,119 @@ export default function Navbar() {
                   </svg>
                 </button>
               </div>
+
+              {/* 👤 User */}
+              <div
+                className="hidden md:block relative"
+                id="user-menu"
+                onMouseEnter={() => setUserMenuOpen(true)}
+                onMouseLeave={() => setUserMenuOpen(false)}
+              >
+                {loading ? (
+                  <div className="p-2 rounded-full min-w-[44px] min-h-[44px] flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  </div>
+                ) : user ? (
+                  <>
+                    <button
+                      type="button"
+                      aria-label="User menu"
+                      className="p-2 rounded-full hover:bg-gray-800 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-5 sm:w-6 h-5 sm:h-6 text-white"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                        />
+                      </svg>
+                    </button>
+
+                    {/* User Dropdown */}
+                    {userMenuOpen && (
+                      <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                        <div className="px-4 py-2 border-b border-gray-100">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {user.displayName || user.email?.split('@')[0] || 'User'}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                        </div>
+                        <Link
+                          href="/orders"
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <svg
+                            className="w-4 h-4 mr-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M16 11V7a4 4 0 00-8 0v4M8 11v6h8v-6H8z"
+                            />
+                          </svg>
+                          My Orders
+                        </Link>
+                        <button
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            handleSignOut();
+                          }}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                        >
+                          <svg
+                            className="w-4 h-4 mr-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                            />
+                          </svg>
+                          Sign Out
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <Link
+                    href="/sign-in"
+                    className="p-2 rounded-full hover:bg-gray-800 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    aria-label="Sign in"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 sm:w-6 h-5 sm:h-6 text-white"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676-.584-5.216-.584-7.499-1.632z"
+                      />
+                    </svg>
+                  </Link>
+                )}
+              </div>
+
               {/* Cart */}
               <Link
                 href="/cart"
