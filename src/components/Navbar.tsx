@@ -574,6 +574,7 @@ function NavbarContent() {
                     <button
                       type="button"
                       aria-label="User menu"
+                      onClick={() => setUserMenuOpen((s) => !s)}
                       className="p-2 rounded-full hover:bg-gray-800 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                     >
                       <svg
@@ -594,7 +595,7 @@ function NavbarContent() {
 
                     {/* User Dropdown */}
                     {userMenuOpen && (
-                      <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                      <div className="absolute right-0 top-full mt-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                         <div className="px-4 py-2 border-b border-gray-100">
                           <p className="text-sm font-medium text-gray-900 truncate">
                             {user.displayName || user.email?.split('@')[0] || 'User'}
