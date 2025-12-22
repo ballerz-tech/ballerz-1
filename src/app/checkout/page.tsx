@@ -78,6 +78,9 @@ function CheckoutContent() {
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
   const [showCustomFor, setShowCustomFor] = useState<Record<string, boolean>>({});
+  const [discountCode, setDiscountCode] = useState("");
+  const [discountCodeStatus, setDiscountCodeStatus] = useState<"idle"|"valid"|"invalid"|"checking">("idle");
+  const [discountPercent, setDiscountPercent] = useState<number>(0);
   const searchParams = useSearchParams();
   const buyNowParam = searchParams.get("buyNow");
   const [isBuyNow, setIsBuyNow] = useState(false);
@@ -211,6 +214,9 @@ function CheckoutContent() {
     return sum + (isNaN(totalPrice) ? 0 : totalPrice * qty);
   }, 0);
 
+  const discountAmount = discountCodeStatus === "valid" && discountPercent > 0 ? Math.round(grandTotal * (discountPercent / 100)) : 0;
+  const discountedTotal = grandTotal - discountAmount;
+
   const handleInputChange = (field: keyof CustomerDetails, value: string) => {
     setCustomerDetails(prev => ({ ...prev, [field]: value }));
   };
@@ -249,7 +255,10 @@ function CheckoutContent() {
         })
       })),
       customer: customerDetails,
-      total: grandTotal,
+      total: discountedTotal,
+      discountCode: discountCodeStatus === "valid" ? discountCode : undefined,
+      discountPercent: discountCodeStatus === "valid" ? discountPercent : undefined,
+      discountAmount: discountCodeStatus === "valid" ? discountAmount : undefined,
       createdAt: new Date().toISOString(),
       userId: user?.uid || null,
       userEmail: user?.email || customerDetails.email,
@@ -257,7 +266,7 @@ function CheckoutContent() {
 
     const options = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Your Razorpay Key ID
-      amount: grandTotal * 100, // Amount in paise (multiply by 100)
+      amount: discountedTotal * 100, // Amount in paise (multiply by 100)
       currency: "INR",
       name: "Ballerz",
       description: `Order for ${items.length} items`,
@@ -379,7 +388,14 @@ function CheckoutContent() {
           </div>
           <div className="bg-gray-800 rounded-lg p-4 mb-8">
             <p className="text-gray-400 text-sm mb-1">Total Amount</p>
-            <p className="text-white text-2xl font-bold">{formatCurrency(orderDetails?.total || 0)}</p>
+            {orderDetails?.discountAmount > 0 ? (
+              <div>
+                <span className="line-through text-gray-400 mr-2">{formatCurrency((orderDetails?.total || 0) + (orderDetails?.discountAmount || 0))}</span>
+                <span className="text-green-400 text-2xl font-bold">{formatCurrency(orderDetails?.total || 0)}</span>
+              </div>
+            ) : (
+              <p className="text-white text-2xl font-bold">{formatCurrency(orderDetails?.total || 0)}</p>
+            )}
           </div>
           <div className="flex flex-col gap-3">
             <button
@@ -542,6 +558,54 @@ function CheckoutContent() {
               <div className="px-6 py-5 lg:px-8 lg:py-6 border-b border-gray-700">
                 <h2 className="text-xl lg:text-2xl font-bold text-white">Order Summary</h2>
                 <p className="text-gray-400 text-sm mt-1">{items.length} item{items.length !== 1 ? 's' : ''} in your order</p>
+                {/* Discount Code Input */}
+                <div className="mt-4 flex flex-col gap-2">
+                  <label htmlFor="discount-code" className="text-sm text-gray-300 font-semibold">Discount Code</label>
+                  <div className="flex gap-2">
+                    <input
+                      id="discount-code"
+                      type="text"
+                      value={discountCode}
+                      onChange={e => setDiscountCode(e.target.value)}
+                      className="px-3 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white focus:ring-2 focus:ring-white focus:border-transparent text-sm"
+                      placeholder="Enter code"
+                      autoComplete="off"
+                      disabled={discountCodeStatus === "checking"}
+                    />
+                    <button
+                      type="button"
+                      className="px-4 py-2 rounded-lg bg-white text-black font-semibold hover:bg-gray-200 text-sm"
+                      disabled={!discountCode || discountCodeStatus === "checking"}
+                      onClick={async () => {
+                        setDiscountCodeStatus("checking");
+                        try {
+                          const q = query(collection(db, "discount-code"), where("Code", "==", discountCode));
+                          const snap = await getDocs(q);
+                          if (!snap.empty) {
+                            const doc = snap.docs[0].data();
+                            setDiscountPercent(Number(doc.Discount) || 0);
+                            setDiscountCodeStatus("valid");
+                          } else {
+                            setDiscountPercent(0);
+                            setDiscountCodeStatus("invalid");
+                          }
+                        } catch (e) {
+                          setDiscountPercent(0);
+                          setDiscountCodeStatus("invalid");
+                        }
+                      }}
+                    >Apply</button>
+                  </div>
+                  {discountCodeStatus === "valid" && (
+                    <span className="text-green-400 text-xs">Code applied! {discountPercent}% off</span>
+                  )}
+                  {discountCodeStatus === "invalid" && (
+                    <span className="text-red-400 text-xs">Invalid code</span>
+                  )}
+                  {discountCodeStatus === "checking" && (
+                    <span className="text-gray-400 text-xs">Checking...</span>
+                  )}
+                </div>
               </div>
               
               <div className="px-6 py-6 lg:px-8 lg:py-6">
@@ -606,7 +670,15 @@ function CheckoutContent() {
                           )}
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="font-bold text-white text-sm lg:text-base">{formatCurrency(total)}</p>
+                          <div className="flex flex-col items-end">
+                            <div>
+                              {prod?.OriginalPrice && (
+                                <span className="line-through text-gray-400 mr-1">{formatCurrency(Number(prod.OriginalPrice))}</span>
+                              )}
+                              <span className="text-yellow-400 font-bold text-sm lg:text-base">{formatCurrency(basePrice)}</span>
+                            </div>
+                            <p className="font-bold text-white text-xs lg:text-sm mt-1">{formatCurrency(total)}</p>
+                          </div>
                           {customPrice > 0 && (
                             <div className="text-xs text-gray-400 mt-1">
                               <div>{formatCurrency(basePrice)} base</div>
@@ -624,6 +696,12 @@ function CheckoutContent() {
                     <span className="text-gray-400">Subtotal</span>
                     <span className="text-white font-semibold">{formatCurrency(grandTotal)}</span>
                   </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-gray-400">Discount ({discountPercent}%)</span>
+                      <span className="text-green-400 font-semibold">- {formatCurrency(discountAmount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center mt-2">
                     <span className="text-gray-400">Shipping</span>
                     <span className="text-green-400 font-semibold">Free</span>
@@ -631,7 +709,14 @@ function CheckoutContent() {
                   <div className="border-t border-gray-700 mt-4 pt-4">
                     <div className="flex justify-between items-center text-xl font-bold">
                       <span className="text-white">Total</span>
-                      <span className="text-white">{formatCurrency(grandTotal)}</span>
+                      {discountAmount > 0 ? (
+                        <span>
+                          <span className="line-through text-gray-400 mr-2">{formatCurrency(grandTotal)}</span>
+                          <span className="text-green-400 font-bold">{formatCurrency(discountedTotal)}</span>
+                        </span>
+                      ) : (
+                        <span className="text-white">{formatCurrency(grandTotal)}</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -654,7 +739,9 @@ function CheckoutContent() {
                       Processing...
                     </span>
                   ) : (
-                    `Pay ${formatCurrency(grandTotal)}`
+                    discountAmount > 0
+                      ? `Pay ${formatCurrency(discountedTotal)}`
+                      : `Pay ${formatCurrency(grandTotal)}`
                   )}
                 </button>
                 

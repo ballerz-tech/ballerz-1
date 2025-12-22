@@ -16,6 +16,7 @@ type Product = {
   Description: string;
   ImageUrl1: string;
   Price: number;
+  OriginalPrice?: number;
   Product: string;
 };
 
@@ -156,7 +157,12 @@ export default function Home() {
                     />
                   </div>
                   <div className="truncate text-white text-lg mb-1 w-full text-center">{p.Description}</div>
-                  <div className="mt-1 text-yellow-400 font-semibold text-center">₹{p.Price}</div>
+                  <div className="mt-1 text-center">
+                    {p.OriginalPrice && (
+                      <span className="line-through text-gray-400 mr-2">₹{p.OriginalPrice}</span>
+                    )}
+                    <span className="text-yellow-400 font-semibold">₹{p.Price}</span>
+                  </div>
                 </Link>
               ))}
             </div>
