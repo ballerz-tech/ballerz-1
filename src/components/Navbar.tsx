@@ -535,7 +535,15 @@ function NavbarContent() {
                 style={{ lineHeight: '1', paddingTop: '10px', paddingBottom: '2px' }}
                 onClick={(e) => { e.preventDefault(); window.location.href = '/'; }}
               >
-                Ballerz
+                <span className="flex flex-col items-center leading-none">
+  <span className="text-[10px] sm:text-xs tracking-[0.3em] text-gray-400 font-medium">
+    OTAKU
+  </span>
+  <span className="text-lg sm:text-xl md:text-2xl font-bold">
+    BALLERZ
+  </span>
+</span>
+
               </Link>
             </div>
             {/* Right side: Only show search, user, and cart on mobile */}

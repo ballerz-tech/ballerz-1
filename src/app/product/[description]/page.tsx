@@ -32,6 +32,7 @@ export default function ProductPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { addItem } = useCart();
+  const [showSizeChart, setShowSizeChart] = useState(false);
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -261,6 +262,12 @@ export default function ProductPage() {
             {/* SIZE */}
             <div className="mb-6">
               <p className="font-semibold mb-2">Size:</p>
+              <button
+  onClick={() => setShowSizeChart(true)}
+  className="text-sm underline font-bold text-gray-600 hover:text-black"
+>
+  View Size Chart
+</button>
               <div className="flex gap-3 flex-wrap">
                 {["S", "M", "L", "XL"].map((size) => (
                   <button
@@ -277,6 +284,7 @@ export default function ProductPage() {
                 ))}
               </div>
             </div>
+            
 
             <button
               onClick={handleAddToCart}
@@ -353,6 +361,32 @@ export default function ProductPage() {
           </div>
         </div>
       )}
+      {showSizeChart && (
+  <div
+    className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-4"
+    onClick={() => setShowSizeChart(false)}
+  >
+    <div
+      className="relative bg-white rounded-lg max-w-2xl w-full p-4"
+      onClick={(e) => e.stopPropagation()} // prevents closing when clicking image
+    >
+      {/* Close button */}
+      <button
+        onClick={() => setShowSizeChart(false)}
+        className="absolute top-3 right-3 text-black text-xl font-bold"
+      >
+        ✕
+      </button>
+
+      <img
+        src="/printrove-size-chart.jpg"
+        alt="Printrove Size Chart"
+        className="w-full h-auto rounded"
+      />
+    </div>
+  </div>
+)}
+
 
       <ReviewCarousel />
     </>

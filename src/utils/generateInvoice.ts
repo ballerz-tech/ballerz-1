@@ -5,42 +5,50 @@ export function generateInvoice(order: any) {
   const doc = new jsPDF();
   const generatedAt = new Date();
 
-  // ===== Title =====
-  doc.setFontSize(18);
-  doc.text("Ballerz Invoice", 14, 20);
+  // ===== Brand Title =====
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("OTAKU", 14, 18);
+
+  doc.setFontSize(20);
+  doc.text("BALLERZ", 14, 26);
+
+  // Divider
+  doc.setLineWidth(0.5);
+  doc.line(14, 30, 196, 30);
 
   // ===== Order Meta =====
   doc.setFontSize(11);
-  doc.text(`Order ID: ${order.id}`, 14, 30);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Order ID: ${order.id}`, 14, 36);
   doc.text(
     `Order Date: ${order.createdAt?.toDate?.().toLocaleString()}`,
     14,
-    36
+    42
   );
-  doc.text(`Order Status: ${order.status}`, 14, 42);
+  doc.text(`Order Status: ${order.status}`, 14, 48);
   doc.text(
     `Invoice Generated: ${generatedAt.toLocaleString()}`,
     14,
-    48
+    54
   );
 
   // ===== Customer Details =====
   doc.setFontSize(12);
-  doc.text("Customer Details", 14, 60);
+  doc.text("Customer Details", 14, 66);
 
   doc.setFontSize(11);
-  doc.text(`Name: ${order.customer?.name}`, 14, 66);
-  doc.text(`Email: ${order.customer?.email}`, 14, 72);
-  doc.text(`Phone: ${order.customer?.phone}`, 14, 78);
-  doc.text(`Address: ${order.customer?.address}`, 14, 84);
+  doc.text(`Name: ${order.customer?.name}`, 14, 72);
+  doc.text(`Email: ${order.customer?.email}`, 14, 78);
+  doc.text(`Phone: ${order.customer?.phone}`, 14, 84);
+  doc.text(`Address: ${order.customer?.address}`, 14, 90);
 
   // ===== Calculate Normal Total =====
   const normalTotal = order.items.reduce((sum: number, item: any) => {
     const basePrice = item.product?.Price || 0;
     const customPrice =
       item.isCustomized && item.customPrice ? item.customPrice : 0;
-    const totalPrice = basePrice + customPrice;
-    return sum + totalPrice * item.Quantity;
+    return sum + (basePrice + customPrice) * item.Quantity;
   }, 0);
 
   const grandTotal = order.total;
@@ -52,7 +60,7 @@ export function generateInvoice(order: any) {
 
   // ===== Order Table =====
   autoTable(doc, {
-    startY: 94,
+    startY: 100,
     head: [["Product", "Qty", "Price", "Total"]],
     body: order.items.map((item: any) => {
       const basePrice = item.product?.Price || 0;
@@ -84,11 +92,10 @@ export function generateInvoice(order: any) {
     },
   });
 
-  // ===== Totals Section =====
-  const finalY = (doc as any).lastAutoTable.finalY || 100;
+  // ===== Totals =====
+  const finalY = (doc as any).lastAutoTable.finalY || 110;
   doc.setFontSize(12);
 
-  // Discount line (only if applicable)
   if (discountAmount > 0) {
     doc.text(
       `Discount (${discountPercent}%): -Rs. ${discountAmount}`,
@@ -111,11 +118,11 @@ export function generateInvoice(order: any) {
   // ===== Footer =====
   doc.setFontSize(10);
   doc.text(
-    "Thank you for shopping with Ballerz.",
+    "Thank you for shopping with OTAKU BALLERZ.",
     14,
     discountAmount > 0 ? finalY + 30 : finalY + 20
   );
 
   // ===== Save =====
-  doc.save(`Ballerz_Order_${order.id}.pdf`);
+  doc.save(`OTAKU_BALLERZ_Order_${order.id}.pdf`);
 }

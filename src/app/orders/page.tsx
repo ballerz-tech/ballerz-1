@@ -161,12 +161,7 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="mb-8 space-y-3">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-          <span
-            onClick={() => router.push("/")}
-            className="text-xl sm:text-2xl font-semibold cursor-pointer"
-          >
-            Ballerz
-          </span>
+          
           <h1 className="text-2xl sm:text-3xl font-semibold">
             Your Orders
           </h1>

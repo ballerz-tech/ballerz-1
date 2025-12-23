@@ -62,9 +62,20 @@ export default function Home() {
       <section className="bg-black text-white py-20 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h1 className="text-5xl md:text-7xl font-bold mb-4 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-              BALLERZ
-            </h1>
+            <h1 className="flex flex-col items-center mb-4 leading-tight">
+  <span className="ml-3 text-[25px] md:text-[27px] font-bold tracking-[0.7em] text-gray-300">
+    OTAKU
+  </span>
+
+  <span className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+    BALLERZ
+  </span>
+</h1>
+
+
+
+
+
             <p className="text-xl md:text-2xl text-gray-300 font-light">
               Premium Football Jerseys & Sportswear
             </p>
