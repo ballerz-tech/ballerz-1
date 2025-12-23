@@ -51,7 +51,7 @@ export default function SignUpPage() {
       if (!auth) throw new Error("Auth not initialized");
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await addUserToFirestore(userCredential.user.uid, email);
-      router.push("/");
+      handlePostAuthRedirect();
     } catch (err: any) {
       setError(err.message || "Failed to create account");
     } finally {
@@ -72,13 +72,28 @@ export default function SignUpPage() {
         userCredential.user.email || "",
         userCredential.user.displayName || undefined
       );
-      router.push("/");
+      handlePostAuthRedirect();
     } catch (err: any) {
       setError(err.message || "Failed to sign up with Google");
     } finally {
       setLoading(false);
     }
   };
+
+  const handlePostAuthRedirect = () => {
+  const raw = sessionStorage.getItem("postAuthAction");
+
+  if (!raw) {
+    router.replace("/");
+    return;
+  }
+
+  const action = JSON.parse(raw);
+  
+
+  router.replace(action.redirectTo || "/");
+};
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white px-4 font-light text-black">

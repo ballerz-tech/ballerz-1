@@ -86,23 +86,21 @@ function CheckoutContent() {
   const searchParams = useSearchParams();
   const buyNowParam = searchParams.get("buyNow");
   const [isBuyNow, setIsBuyNow] = useState(false);
-  
   useEffect(() => {
-  const raw = sessionStorage.getItem("postAuthAction");
+  if(loading) return;
+    const raw = sessionStorage.getItem("postAuthAction");
   if (!raw) return;
 
   const action = JSON.parse(raw);
+  if (action.type !== "BUY_NOW") return;
 
-  if (action.type === "BUY_NOW") {
-    // Store Buy Now payload temporarily for checkout
-    sessionStorage.setItem(
-      "buyNowItem",
-      JSON.stringify(action.payload)
-    );
-  }
+  sessionStorage.setItem(
+    "buyNowItem",
+    JSON.stringify(action.payload)
+  );
 
   sessionStorage.removeItem("postAuthAction");
-}, []);
+}, [loading]);
 
 
 

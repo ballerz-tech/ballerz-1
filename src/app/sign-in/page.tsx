@@ -21,7 +21,7 @@ export default function SignInPage() {
     try {
       if (!auth) throw new Error("Auth not initialized");
       await signInWithEmailAndPassword(auth, email, password);
-      router.push("/");
+      handlePostAuthRedirect();
     } catch (err: any) {
       setError(err.message || "Failed to sign in");
     } finally {
@@ -37,13 +37,28 @@ export default function SignInPage() {
       if (!auth) throw new Error("Auth not initialized");
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-      router.push("/");
+      handlePostAuthRedirect();
     } catch (err: any) {
       setError(err.message || "Failed to sign in with Google");
     } finally {
       setLoading(false);
     }
   };
+
+  const handlePostAuthRedirect = () => {
+  const raw = sessionStorage.getItem("postAuthAction");
+
+  if (!raw) {
+    router.replace("/");
+    return;
+  }
+
+  const action = JSON.parse(raw);
+  
+
+  router.replace(action.redirectTo || "/");
+};
+
 
   return (
     <div className="flex items-center justify-center bg-white px-4 font-light text-black py-8">

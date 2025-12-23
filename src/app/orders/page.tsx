@@ -64,7 +64,7 @@ export default function OrdersPage() {
 
   /* 🔥 Fetch orders */
   useEffect(() => {
-    if (!user?.email || !db) return;
+    if (!user?.email) return;
 
     const q = query(
       collection(db!, "Orders"),
@@ -86,7 +86,7 @@ export default function OrdersPage() {
 
   /* 🛒 Buy again */
   const handleBuyAgain = async (items: OrderItem[]) => {
-    if (!user?.email || !db) return;
+    if (!user?.email) return;
 
     const cartRef = collection(db!, "Cart");
 
@@ -184,92 +184,116 @@ export default function OrdersPage() {
         <p className="text-gray-300">You have no orders yet.</p>
       ) : (
         <div className="space-y-6">
-          {orders.map((order) => (
-            <div
-              key={order.id}
-              className="border border-gray-600 rounded-xl p-4 sm:p-6 space-y-4"
-            >
-              {/* Meta */}
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                <div className="space-y-1">
-                  <p className="font-semibold break-all">
-                    Order ID:{" "}
-                    <span className="font-mono">{order.id}</span>
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    {formatDate(order.createdAt)}
-                  </p>
+          {orders.map((order) => {
+            /* ===== DISCOUNT LOGIC (ADDED) ===== */
+            const normalTotal = order.items.reduce((sum, item) => {
+              const base = item.product?.Price ?? 0;
+              const custom = item.isCustomized ? item.customPrice ?? 0 : 0;
+              return sum + (base + custom) * item.Quantity;
+            }, 0);
+
+            const discountAmount = normalTotal - order.total;
+            const discountPercent =
+              normalTotal > 0
+                ? Math.round((discountAmount / normalTotal) * 100)
+                : 0;
+
+            return (
+              <div
+                key={order.id}
+                className="border border-gray-600 rounded-xl p-4 sm:p-6 space-y-4"
+              >
+                {/* Meta */}
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                  <div className="space-y-1">
+                    <p className="font-semibold break-all">
+                      Order ID:{" "}
+                      <span className="font-mono">{order.id}</span>
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      {formatDate(order.createdAt)}
+                    </p>
+                  </div>
+
+                  <span className="px-4 py-1 rounded-full border border-gray-500 font-medium capitalize w-fit">
+                    {order.status}
+                  </span>
                 </div>
 
-                <span className="px-4 py-1 rounded-full border border-gray-500 font-medium capitalize w-fit">
-                  {order.status}
-                </span>
-              </div>
+                {/* Items */}
+                <div className="space-y-2">
+                  {order.items.map((item, idx) => {
+                    const base = item.product?.Price ?? 0;
+                    const custom = item.isCustomized ? item.customPrice ?? 0 : 0;
+                    const total = (base + custom) * item.Quantity;
 
-              {/* Items */}
-              <div className="space-y-2">
-                {order.items.map((item, idx) => {
-                  const base = item.product?.Price ?? 0;
-                  const custom = item.isCustomized ? item.customPrice ?? 0 : 0;
-                  const total = (base + custom) * item.Quantity;
-
-                  return (
-                    <div key={idx} className="space-y-1">
-                      <div className="flex justify-between text-sm gap-4">
-                        <span className="flex-1">
-                          {item.product?.Description ?? "Product"} ×{" "}
-                          {item.Quantity}
-                        </span>
-                        <span className="whitespace-nowrap">
-                          Rs. {total}
-                        </span>
-                      </div>
-
-                      {item.isCustomized && (
-                        <div className="ml-3 p-2 bg-gray-900 border border-gray-700 rounded">
-                          <p className="text-xs text-blue-400">
-                            Customized: "{item.customizationText}"
-                          </p>
-                          {custom > 0 && (
-                            <p className="text-xs text-blue-300">
-                              +Rs. {custom} customization fee
-                            </p>
-                          )}
+                    return (
+                      <div key={idx} className="space-y-1">
+                        <div className="flex justify-between text-sm gap-4">
+                          <span className="flex-1">
+                            {item.product?.Description ?? "Product"} ×{" "}
+                            {item.Quantity}
+                          </span>
+                          <span className="whitespace-nowrap">
+                            Rs. {total}
+                          </span>
                         </div>
-                      )}
+
+                        {item.isCustomized && (
+                          <div className="ml-3 p-2 bg-gray-900 border border-gray-700 rounded">
+                            <p className="text-xs text-blue-400">
+                              Customized: "{item.customizationText}"
+                            </p>
+                            {custom > 0 && (
+                              <p className="text-xs text-blue-300">
+                                +Rs. {custom} customization fee
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* ===== TOTAL + DISCOUNT (ADDED) ===== */}
+                <div className="space-y-1">
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-sm text-green-400">
+                      <span>Discount ({discountPercent}%)</span>
+                      <span>- Rs. {discountAmount}</span>
                     </div>
-                  );
-                })}
+                  )}
+
+                  <div className="flex justify-between items-center font-semibold text-lg">
+                    <span>Total</span>
+                    <span>Rs. {order.total}</span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
+                  <button className="px-4 py-2 border border-gray-500 rounded font-medium hover:bg-gray-800">
+                    Track Order
+                  </button>
+
+                  <button
+                    onClick={() => handleBuyAgain(order.items)}
+                    className="px-4 py-2 border border-gray-500 rounded font-medium hover:bg-gray-800"
+                  >
+                    Buy Again
+                  </button>
+
+                  <button
+                    onClick={() => generateInvoice(order)}
+                    className="px-4 py-2 border border-gray-500 rounded font-medium hover:bg-gray-800"
+                  >
+                    Download Invoice
+                  </button>
+                </div>
               </div>
-
-              {/* Total */}
-              <div className="flex justify-between items-center font-semibold text-lg">
-                <span>Total</span>
-                <span>Rs. {order.total}</span>
-              </div>
-
-              {/* Actions */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
-                <button className="px-4 py-2 border border-gray-500 rounded font-medium hover:bg-gray-800">
-                  Track Order
-                </button>
-
-                <button
-                  onClick={() => handleBuyAgain(order.items)}
-                  className="px-4 py-2 border border-gray-500 rounded font-medium hover:bg-gray-800"
-                >
-                  Buy Again
-                </button>
-
-                <button
-                  onClick={() => generateInvoice(order)}
-                  className="px-4 py-2 border border-gray-500 rounded font-medium hover:bg-gray-800"
-                >
-                  Download Invoice
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

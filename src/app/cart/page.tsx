@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -62,12 +63,56 @@ function formatCurrency(n: number | string | undefined) {
 export default function CartPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
-
+  const postAuthHandled = useRef(false);
   const [items, setItems] = useState<CartItem[]>([]);
   const [loadingItems, setLoadingItems] = useState(true);
   const [inventoryMap, setInventoryMap] = useState<Record<string, InventoryItem>>({});
   const [suggestions, setSuggestions] = useState<InventoryItem[]>([]);
   const [addingMap, setAddingMap] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+  
+    if(loading) return;
+    if (!user?.email) return;
+    if (postAuthHandled.current) return;
+  const raw = sessionStorage.getItem("postAuthAction");
+  if (!raw) return;
+
+  const action = JSON.parse(raw);
+  if (action.type !== "ADD_TO_CART") return;
+postAuthHandled.current = true;
+  const addAfterAuth = async () => {
+    const cartRef = collection(db!, "Cart");
+
+    const q = query(
+      cartRef,
+      where("UserMail", "==", user.email),
+      where("ID", "==", action.payload.productId),
+      where("Size", "==", action.payload.size)
+    );
+
+    const snap = await getDocs(q);
+
+    if (!snap.empty) {
+      const ref = snap.docs[0].ref;
+      const prevQty = snap.docs[0].data().Quantity || 0;
+
+      await updateDoc(ref, {
+        Quantity: prevQty + action.payload.quantity,
+      });
+    } else {
+      await addDoc(cartRef, {
+        ID: action.payload.productId,
+        Quantity: action.payload.quantity,
+        Size: action.payload.size,
+        UserMail: user.email,
+      });
+    }
+
+    sessionStorage.removeItem("postAuthAction");
+  };
+
+  addAfterAuth();
+}, [user, loading]);
 
   // Load cart items from Firestore (logged-in) or cookie (guest)
   useEffect(() => {

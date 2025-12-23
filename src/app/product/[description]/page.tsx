@@ -112,49 +112,65 @@ export default function ProductPage() {
     setImageIndex((prev) => (prev - 1 + images.length) % images.length);
 
   const handleAddToCart = async () => {
-    if (!user?.email || !db) {
-      router.push("/sign-in");
-      return;
-    }
-
-    const cartRef = collection(db!, "Cart");
-
-    const q = query(
-      cartRef,
-      where("UserMail", "==", user.email),
-      where("ID", "==", product.ID),
-      where("Size", "==", selectedSize)
+  if (!user?.email || !db) {
+    sessionStorage.setItem(
+      "postAuthAction",
+      JSON.stringify({
+        type: "ADD_TO_CART",
+        payload: {
+          productId: product.ID,
+          quantity,
+          size: selectedSize,
+        },
+        redirectTo: "/cart",
+      })
     );
 
-    const snap = await getDocs(q);
+    router.push("/sign-in");
+    return;
+  }
 
-    if (!snap.empty) {
-      const docRef = snap.docs[0].ref;
-      const prevQty = snap.docs[0].data().Quantity || 0;
+  const cartRef = collection(db!, "Cart");
 
-      await updateDoc(docRef, {
-        Quantity: prevQty + quantity,
-        ["Added On"]: serverTimestamp(),
-      });
-    } else {
-      await addDoc(cartRef, {
-        ID: product.ID,
-        Quantity: quantity,
-        Size: selectedSize,
-        UserMail: user.email,
-        ["Added On"]: serverTimestamp(),
-      });
-    }
+  const q = query(
+    cartRef,
+    where("UserMail", "==", user.email),
+    where("ID", "==", product.ID),
+    where("Size", "==", selectedSize)
+  );
 
-    for (let i = 0; i < quantity; i++) {
-      addItem(String(product.ID));
-    }
-  };
+  const snap = await getDocs(q);
+
+  if (!snap.empty) {
+    const docRef = snap.docs[0].ref;
+    const prevQty = snap.docs[0].data().Quantity || 0;
+
+    await updateDoc(docRef, {
+      Quantity: prevQty + quantity,
+      ["Added On"]: serverTimestamp(),
+    });
+  } else {
+    await addDoc(cartRef, {
+      ID: product.ID,
+      Quantity: quantity,
+      Size: selectedSize,
+      UserMail: user.email,
+      ["Added On"]: serverTimestamp(),
+    });
+  }
+
+  for (let i = 0; i < quantity; i++) {
+    addItem(String(product.ID));
+  }
+
+  router.push("/cart");
+};
+
 
   return (
     <>
       {/* MAIN PRODUCT SECTION */}
-      <div className="min-h-screen bg-black text-white px-4 sm:px-8 lg:px-12 pt-6 pb-20">
+      <div className="min-h-screen bg-white text-black px-4 sm:px-8 lg:px-12 pt-6 pb-20">
         <button
           onClick={() => router.back()}
           className="mb-6 font-semibold hover:underline"
@@ -165,7 +181,7 @@ export default function ProductPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
           {/* IMAGE SECTION */}
           <div>
-            <div className="relative bg-white rounded-xl p-4 sm:p-6">
+            <div className="relative bg-gray-50 border rounded-xl p-4 sm:p-6">
               <img
                 src={images[imageIndex]}
                 alt={product.Description}
@@ -198,7 +214,7 @@ export default function ProductPage() {
                   src={img}
                   onClick={() => setImageIndex(i)}
                   className={`h-20 w-20 sm:h-24 sm:w-24 object-contain rounded cursor-pointer border-2 ${
-                    i === imageIndex ? "border-white" : "border-transparent"
+                    i === imageIndex ? "border-black" : "border-transparent"
                   }`}
                 />
               ))}
@@ -252,8 +268,8 @@ export default function ProductPage() {
                     onClick={() => setSelectedSize(size)}
                     className={`px-4 py-2 rounded border font-semibold ${
                       selectedSize === size
-                        ? "bg-white text-black"
-                        : "border-white text-white"
+                        ? "bg-black text-white"
+                        : "border-black text-black"
                     }`}
                   >
                     {size}
@@ -270,21 +286,48 @@ export default function ProductPage() {
             </button>
 
             <button
-              onClick={() => {
-                handleAddToCart();
-                router.push("/checkout");
-              }}
-              className="w-full bg-indigo-500 hover:bg-indigo-600 py-4 rounded-xl font-semibold"
-            >
-              Buy Now
-            </button>
+  onClick={() => {
+    if (!user?.email) {
+      sessionStorage.setItem(
+        "postAuthAction",
+        JSON.stringify({
+          type: "BUY_NOW",
+          payload: {
+            productId: product.ID,
+            quantity,
+            size: selectedSize,
+          },
+          redirectTo: "/checkout",
+        })
+      );
+
+      router.push("/sign-in");
+      return;
+    }
+
+    sessionStorage.setItem(
+      "buyNowItem",
+      JSON.stringify({
+        productId: product.ID,
+        quantity,
+        size: selectedSize,
+      })
+    );
+
+    router.push("/checkout");
+  }}
+  className="w-full bg-indigo-500 hover:bg-indigo-600 py-4 rounded-xl font-semibold"
+>
+  Buy Now
+</button>
+
           </div>
         </div>
       </div>
 
       {/* RELATED PRODUCTS */}
       {relatedProducts.length > 0 && (
-        <div className="bg-black text-white px-4 sm:px-8 lg:px-12 mt-24">
+        <div className="relative z-10 bg-white text-black px-4 sm:px-8 lg:px-12 py-24">
           <h2 className="text-2xl font-semibold mb-6">Related Products</h2>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -296,7 +339,7 @@ export default function ProductPage() {
                     `/product/${encodeURIComponent(rp.Description)}`
                   )
                 }
-                className="cursor-pointer bg-white rounded-xl p-4 text-black hover:scale-105 transition"
+                className="cursor-pointer bg-gray-50 border rounded-xl p-4 text-black hover:scale-105 transition"
               >
                 <img
                   src={rp.ImageUrl1}
