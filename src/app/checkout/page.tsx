@@ -70,6 +70,7 @@ function CheckoutContent() {
   const [loadingItems, setLoadingItems] = useState(true);
   const [inventoryMap, setInventoryMap] = useState<Record<string, any>>({});
   const [orderStatus, setOrderStatus] = useState<OrderStatus>("checkout");
+  const [hasEditedEmail, setHasEditedEmail] = useState(false);
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
     name: "",
     email: user?.email || "",
@@ -106,10 +107,13 @@ function CheckoutContent() {
 
   // Auto-fill email when user is available
   useEffect(() => {
-    if (user?.email && !customerDetails.email) {
-      setCustomerDetails(prev => ({ ...prev, email: user.email || "" }));
+    if (user?.email && !hasEditedEmail) {
+      setCustomerDetails(prev => ({
+        ...prev,
+        email: prev.email || user.email || "",
+      }));
     }
-  }, [user, customerDetails.email]);
+  }, [user, hasEditedEmail]);
 
   // Load Razorpay script
   useEffect(() => {
@@ -263,15 +267,20 @@ if (storedBuyNow) {
       // Only allow digits, max 6
       value = value.replace(/\D/g, "").slice(0, 6);
     }
+    if (field === "email") {
+      setHasEditedEmail(true);
+    }
     setCustomerDetails(prev => ({ ...prev, [field]: value }));
   };
 
   const isFormValid = () => {
-    return customerDetails.name.trim() && 
-           customerDetails.email.trim() && 
-           customerDetails.phone.trim() && 
-           customerDetails.address.trim() &&
-           items.length > 0;
+    const nameValid = customerDetails.name.trim().length > 0;
+    const emailValid = !!customerDetails.email.trim() && /\S+@\S+\.\S+/.test(customerDetails.email.trim());
+    const phoneValid = customerDetails.phone.trim().length === 10;
+    const addressValid = customerDetails.address.trim().length > 0;
+    const pinValid = customerDetails.pinCode.trim().length === 6;
+
+    return nameValid && emailValid && phoneValid && addressValid && pinValid && items.length > 0;
   };
 
   const handlePayment = async () => {
@@ -280,8 +289,29 @@ if (storedBuyNow) {
       return;
     }
 
-    if (!isFormValid()) {
-      alert("Please fill all required fields.");
+    if (!customerDetails.name.trim()) {
+      alert("Please enter your full name.");
+      return;
+    }
+
+    const emailTrimmed = customerDetails.email.trim();
+    if (!emailTrimmed || !/\S+@\S+\.\S+/.test(emailTrimmed)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    if (customerDetails.phone.trim().length !== 10) {
+      alert("Please enter a valid 10-digit phone number.");
+      return;
+    }
+
+    if (!customerDetails.pinCode.trim() || customerDetails.pinCode.trim().length !== 6) {
+      alert("Please enter a valid 6-digit PIN code.");
+      return;
+    }
+
+    if (!customerDetails.address.trim()) {
+      alert("Please enter your complete address.");
       return;
     }
 
@@ -306,7 +336,7 @@ if (storedBuyNow) {
       discountAmount: discountCodeStatus === "valid" ? discountAmount : 0,
       createdAt: new Date().toISOString(),
       userId: user?.uid || null,
-      userEmail: user?.email || customerDetails.email,
+      userEmail: customerDetails.email || user?.email || null,
     };
 
     const options = {
@@ -328,8 +358,33 @@ if (storedBuyNow) {
           const orderRef = await addDoc(collection(db!, "Orders"), finalOrderData);
           setOrderDetails({ ...finalOrderData, orderId: orderRef.id });
           setOrderStatus("success");
+          // Send confirmation / invoice email to the checkout email
+          try {
+            const recipientEmail = customerDetails.email || user?.email || "";
+            if (recipientEmail) {
+              // Use a JSON-serializable version of the order for the email API
+              const emailOrderData = {
+                ...orderData,
+                paymentId: response.razorpay_payment_id,
+                status: "completed",
+                createdAt: new Date().toISOString(),
+              };
 
-          // (Invoice email sending removed — handled manually)
+              await fetch("/api/send-invoice", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  order: emailOrderData,
+                  orderId: orderRef.id,
+                  sendTo: recipientEmail,
+                }),
+              });
+            }
+          } catch (emailErr) {
+            console.error("Error sending confirmation email:", emailErr);
+          }
 
           // Clear cart after successful order only when this was a regular cart checkout.
           // For buy-now single-item purchases we do not clear the user's cart.
