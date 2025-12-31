@@ -28,7 +28,7 @@ type Product = {
 };
 
 export default function ProductPage() {
-  const { description } = useParams();
+  const { productname } = useParams();
   const router = useRouter();
   const { user } = useAuth();
   const { addItem } = useCart();
@@ -44,11 +44,11 @@ export default function ProductPage() {
   // Fetch product
   useEffect(() => {
     const fetchProduct = async () => {
-      if (!description || !db) return;
+      if (!productname || !db) return;
 
       const q = query(
         collection(db!, "inventory"),
-        where("Description", "==", decodeURIComponent(description as string))
+        where("Description", "==", decodeURIComponent(productname as string))
       );
 
       const snap = await getDocs(q);
@@ -60,7 +60,7 @@ export default function ProductPage() {
     };
 
     fetchProduct();
-  }, [description]);
+  }, [productname]);
 
   // Fetch related products
   useEffect(() => {

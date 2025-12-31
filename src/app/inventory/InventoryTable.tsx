@@ -380,11 +380,17 @@ export default function InventoryTable() {
             </div>
             <form onSubmit={(e) => { handleAddSubmit(e); }} className="mt-4 space-y-3">
               <div>
-                <label className="block text-xs text-slate-600">Product</label>
-                <input className="mt-1 w-full rounded border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 text-black" value={form.Product} onChange={(e) => updateForm('Product', e.target.value)} />
+                <label className="block text-xs text-slate-600">Product Category</label>
+                <select className="mt-1 w-full rounded border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 text-black" value={form.Product} onChange={(e) => updateForm('Product', e.target.value)}>
+                  <option value="">Select Category</option>
+                  <option value="Football">Football</option>
+                  <option value="Anime">Anime</option>
+                  <option value="Basketball">Basketball</option>
+                  <option value="Korean">Korean</option>
+                </select>
               </div>
               <div>
-                <label className="block text-xs text-slate-600">Description</label>
+                <label className="block text-xs text-slate-600">Product Name</label>
                 <textarea className="mt-1 w-full rounded border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 text-black" value={form.Description} onChange={(e) => updateForm('Description', e.target.value)} />
               </div>
               <div className="grid grid-cols-3 gap-2">
