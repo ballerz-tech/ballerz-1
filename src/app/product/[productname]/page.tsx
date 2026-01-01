@@ -40,6 +40,9 @@ export default function ProductPage() {
   const [imageIndex, setImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [showToast, setShowToast] = useState(false);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
 
   // Fetch product
   useEffect(() => {
@@ -164,7 +167,9 @@ export default function ProductPage() {
     addItem(String(product.ID));
   }
 
-  router.push("/cart");
+  // Show toast notification
+  setShowToast(true);
+  setTimeout(() => setShowToast(false), 3000);
 };
 
 
@@ -182,12 +187,26 @@ export default function ProductPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
           {/* IMAGE SECTION */}
           <div>
-            <div className="relative bg-gray-50 border rounded-xl p-4 sm:p-6">
+            <div 
+              className="relative bg-gray-50 rounded-xl p-4 sm:p-6 overflow-hidden"
+              onMouseMove={(e) => {
+                if (!isZoomed) return;
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                setZoomPosition({ x, y });
+              }}
+              onMouseEnter={() => setIsZoomed(true)}
+              onMouseLeave={() => setIsZoomed(false)}
+            >
               <img
   src={images[imageIndex]}
   alt={product.Description}
-  className="w-full h-[300px] sm:h-[420px] lg:h-[520px] object-contain cursor-zoom-in"
-  onClick={() => setZoomImage(images[imageIndex])}
+  className="w-full h-[300px] sm:h-[420px] lg:h-[520px] object-contain cursor-zoom-in transition-transform duration-200"
+  style={isZoomed ? {
+    transform: 'scale(2)',
+    transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`
+  } : {}}
 />
 
 
@@ -290,7 +309,7 @@ export default function ProductPage() {
 
             <button
               onClick={handleAddToCart}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 py-4 rounded-xl font-semibold mb-4"
+              className="w-full bg-black hover:bg-gray-800 text-white py-4 rounded-xl font-semibold mb-4"
             >
               Add to Cart
             </button>
@@ -326,7 +345,7 @@ export default function ProductPage() {
 
     router.push("/checkout");
   }}
-  className="w-full bg-indigo-500 hover:bg-indigo-600 py-4 rounded-xl font-semibold"
+  className="w-full bg-black hover:bg-gray-800 text-white py-4 rounded-xl font-semibold"
 >
   Buy Now
 </button>
@@ -349,7 +368,7 @@ export default function ProductPage() {
                     `/product/${encodeURIComponent(rp.Description)}`
                   )
                 }
-                className="cursor-pointer bg-gray-50 border rounded-xl p-4 text-black hover:scale-105 transition"
+                className="cursor-pointer bg-gray-50 rounded-xl p-4 text-black hover:scale-105 transition"
               >
                 <img
                   src={rp.ImageUrl1}
@@ -388,31 +407,13 @@ export default function ProductPage() {
     </div>
   </div>
 )}
- {zoomImage && (
-  <div
-    className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center px-4"
-    onClick={() => setZoomImage(null)}
-  >
-    <div
-      className="relative max-w-4xl w-full"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <button
-        onClick={() => setZoomImage(null)}
-        className="absolute top-3 right-3 text-white text-2xl font-bold"
-      >
-        ✕
-      </button>
 
-      <img
-        src={zoomImage}
-        alt="Zoomed product"
-        className="w-full max-h-[90vh] object-contain cursor-zoom-out"
-      />
-    </div>
-  </div>
-)}
-
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-black text-white px-8 py-4 rounded-full font-semibold shadow-lg animate-fade-in">
+          Added To Basket
+        </div>
+      )}
 
       <ReviewCarousel />
     </>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useAdmin } from "@/hooks/useAdmin";
+import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import CategoryCarousel from "@/components/CategoryCarousel";
 import ReviewCarousel from "@/components/ReviewCarousel";
 import { collection, getDocs } from "firebase/firestore";
@@ -25,6 +26,12 @@ export default function Home() {
   const { totalItems, pulse } = useCart();
   const { user, loading } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdmin(user);
+
+  // Scroll animations for each section
+  const heroSection = useScrollAnimation();
+  const categorySection = useScrollAnimation();
+  const topPicksSection = useScrollAnimation();
+  const reviewSection = useScrollAnimation();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState("");
@@ -59,7 +66,14 @@ export default function Home() {
   return (
     <>
       {/* Hero Stats Section */}
-      <section className="bg-black text-white py-20 px-6">
+      <section 
+        ref={heroSection.elementRef}
+        className={`bg-black text-white py-20 px-6 transition-all duration-1000 ${
+          heroSection.isVisible 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 translate-y-10'
+        }`}
+      >
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h1 className="flex flex-col items-center mb-4 leading-tight">
@@ -108,7 +122,14 @@ export default function Home() {
       </section>
 
       {/* Categories Panel (2x2 grid on mobile, 1x4 on desktop) */}
-      <section className="bg-black text-white px-6 md:px-10 pt-16">
+      <section 
+        ref={categorySection.elementRef}
+        className={`bg-black text-white px-6 md:px-10 pt-16 transition-all duration-1000 delay-200 ${
+          categorySection.isVisible 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 translate-y-10'
+        }`}
+      >
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-8">
             Browse By Category
@@ -148,7 +169,14 @@ export default function Home() {
       </section>
 
       {/* Top Picks Section */}
-      <section className="bg-black text-white px-6 md:px-10 pt-16">
+      <section 
+        ref={topPicksSection.elementRef}
+        className={`bg-black text-white px-6 md:px-10 pt-16 transition-all duration-1000 delay-300 ${
+          topPicksSection.isVisible 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 translate-y-10'
+        }`}
+      >
         <div className="max-w-7xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
             Our Top Picks
@@ -182,7 +210,16 @@ export default function Home() {
         </div>
       </section>
 
-      <ReviewCarousel />
+      <div
+        ref={reviewSection.elementRef}
+        className={`transition-all duration-1000 delay-500 ${
+          reviewSection.isVisible 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 translate-y-10'
+        }`}
+      >
+        <ReviewCarousel />
+      </div>
 
       {/* Inventory Button - Only visible to admins */}
       {!loading && !adminLoading && isAdmin && (
