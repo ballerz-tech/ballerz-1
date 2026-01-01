@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -15,8 +16,9 @@ const firebaseConfig = {
 // Initialize app once (safe on server)
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Only create Firestore/Auth in the browser to avoid IndexedDB errors during SSR
+// Only create Firestore/Auth/Storage in the browser to avoid IndexedDB errors during SSR
 const db = typeof window !== "undefined" ? getFirestore(app) : null;
 const auth = typeof window !== "undefined" ? getAuth(app) : null;
+const storage = typeof window !== "undefined" ? getStorage(app) : null;
 
-export { app, db, auth };
+export { app, db, auth, storage };

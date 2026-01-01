@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { db } from "../../../src/firebase";
+import { db, storage } from "../../../src/firebase";
 import {
   collection,
   onSnapshot,
@@ -11,6 +11,7 @@ import {
   doc as firestoreDoc,
   serverTimestamp,
 } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 type Item = { id: string; [k: string]: any };
 
@@ -47,9 +48,7 @@ export default function InventoryTable() {
   type FormState = {
     Description: string;
     ID: string;
-    ImageUrl1: string;
-    ImageUrl2: string;
-    ImageUrl3: string;
+    ImageUrls: string[];
     Material: string;
     Price: string;
     Product: string;
@@ -63,9 +62,7 @@ export default function InventoryTable() {
   const [form, setForm] = useState<FormState>({
     Description: "",
     ID: "",
-    ImageUrl1: "",
-    ImageUrl2: "",
-    ImageUrl3: "",
+    ImageUrls: [],
     Material: "",
     Price: "",
     Product: "",
@@ -76,6 +73,7 @@ export default function InventoryTable() {
     OriginalPrice: "",
     customprice: "",
   });
+  const [uploadingImages, setUploadingImages] = useState<boolean>(false);
 
   // No filters / add-item UI — render whatever is in `inventory`
 
@@ -171,6 +169,7 @@ export default function InventoryTable() {
   async function handleAddSubmit(e?: React.FormEvent) {
     e?.preventDefault();
     if (!db) return setError('Firestore not initialized');
+    if (!form.Product) return setError('Please select a product category');
     try {
       // compute next ID automatically
       const existingIds = allItems.map((it) => Number(it?.ID ?? it?.id)).filter((n) => !isNaN(n));
@@ -180,9 +179,9 @@ export default function InventoryTable() {
       const payload: any = {
         Description: form.Description || "",
         ID: nextId,
-        ImageUrl1: form.ImageUrl1 || "",
-        ImageUrl2: form.ImageUrl2 || "",
-        ImageUrl3: form.ImageUrl3 || "",
+        ImageUrl1: form.ImageUrls[0] || "",
+        ImageUrl2: form.ImageUrls[1] || "",
+        ImageUrl3: form.ImageUrls[2] || "",
         Material: form.Material || "",
         Price: form.Price ? Number(form.Price) : undefined,
         Product: form.Product || "",
@@ -198,7 +197,7 @@ export default function InventoryTable() {
       Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
       await addDoc(collection(db!, 'inventory'), payload);
       setShowAddModal(false);
-      setForm({ Description: "", ID: "", ImageUrl1: "", ImageUrl2: "", ImageUrl3: "", Material: "", Price: "", Product: "", Size: "M", Tag: "", CustomText: "", Customize: false, OriginalPrice: "", customprice: "" });
+      setForm({ Description: "", ID: "", ImageUrls: [], Material: "", Price: "", Product: "", Size: "M", Tag: "", CustomText: "", Customize: false, OriginalPrice: "", customprice: "" });
       setError(null);
     } catch (e: any) {
       setError(String(e?.message ?? e));
@@ -393,20 +392,13 @@ export default function InventoryTable() {
                 <label className="block text-xs text-slate-600">Product Name</label>
                 <textarea className="mt-1 w-full rounded border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 text-black" value={form.Description} onChange={(e) => updateForm('Description', e.target.value)} />
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-xs text-slate-600">ImageUrl1</label>
-                  <input className="mt-1 w-full rounded border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 text-black" value={form.ImageUrl1} onChange={(e) => updateForm('ImageUrl1', e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-600">ImageUrl2</label>
-                  <input className="mt-1 w-full rounded border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200 text-black" value={form.ImageUrl2} onChange={(e) => updateForm('ImageUrl2', e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-600">ImageUrl3</label>
-                  <input className="mt-1 w-full rounded border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.ImageUrl3} onChange={(e) => updateForm('ImageUrl3', e.target.value)} />
-                </div>
-              </div>
+              <ImageUploadSection
+                category={form.Product}
+                imageUrls={form.ImageUrls}
+                onImagesChange={(urls) => updateForm('ImageUrls', urls)}
+                uploading={uploadingImages}
+                setUploading={setUploadingImages}
+              />
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs text-slate-600">Price</label>
@@ -442,12 +434,181 @@ export default function InventoryTable() {
                 <label htmlFor="customize" className="text-xs text-slate-600">Customize</label>
               </div>
               <div className="flex justify-end">
-                <button type="submit" className="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">Add Item</button>
+                <button type="submit" className="rounded bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:opacity-50" disabled={uploadingImages}>
+                  {uploadingImages ? 'Uploading...' : 'Add Item'}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Image Upload Component with Drag & Drop
+function ImageUploadSection({
+  category,
+  imageUrls,
+  onImagesChange,
+  uploading,
+  setUploading,
+}: {
+  category: string;
+  imageUrls: string[];
+  onImagesChange: (urls: string[]) => void;
+  uploading: boolean;
+  setUploading: (val: boolean) => void;
+}) {
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadError, setUploadError] = useState<string>("");
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      await handleFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.target.files && e.target.files.length > 0) {
+      await handleFiles(e.target.files);
+    }
+  };
+
+  const handleFiles = async (files: FileList) => {
+    if (!category) {
+      setUploadError("Please select a product category first");
+      return;
+    }
+
+    if (!storage) {
+      setUploadError("Storage not initialized");
+      return;
+    }
+
+    setUploadError("");
+    setUploading(true);
+
+    try {
+      const uploadPromises = Array.from(files).slice(0, 3).map(async (file) => {
+        if (!file.type.startsWith("image/")) {
+          throw new Error(`${file.name} is not an image file`);
+        }
+
+        // Create a unique filename
+        const timestamp = Date.now();
+        const randomStr = Math.random().toString(36).substring(7);
+        const extension = file.name.split(".").pop();
+        const filename = `${timestamp}_${randomStr}.${extension}`;
+
+        // Upload to storage in category folder
+        const storageRef = ref(storage!, `products/${category}/${filename}`);
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        return downloadURL;
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      onImagesChange([...imageUrls, ...uploadedUrls].slice(0, 3));
+    } catch (error: any) {
+      setUploadError(error.message || "Error uploading images");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const newUrls = imageUrls.filter((_, i) => i !== index);
+    onImagesChange(newUrls);
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="block text-xs text-slate-600">Product Images (up to 3)</label>
+      
+      {uploadError && (
+        <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">{uploadError}</div>
+      )}
+
+      {/* Preview uploaded images */}
+      {imageUrls.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {imageUrls.map((url, index) => (
+            <div key={index} className="relative group">
+              <img src={url} alt={`Upload ${index + 1}`} className="w-full h-24 object-cover rounded border border-slate-200" />
+              <button
+                type="button"
+                onClick={() => removeImage(index)}
+                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Upload area */}
+      {imageUrls.length < 3 && (
+        <div
+          className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+            dragActive
+              ? "border-indigo-500 bg-indigo-50"
+              : "border-slate-300 hover:border-indigo-400"
+          } ${!category ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          onClick={() => category && fileInputRef.current?.click()}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleChange}
+            className="hidden"
+            disabled={!category || uploading}
+          />
+          <div className="space-y-1">
+            <svg className="mx-auto h-12 w-12 text-slate-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+              <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <div className="text-sm text-slate-600">
+              {uploading ? (
+                <span className="font-medium text-indigo-600">Uploading...</span>
+              ) : (
+                <>
+                  <span className="font-medium text-indigo-600">Click to upload</span> or drag and drop
+                </>
+              )}
+            </div>
+            <p className="text-xs text-slate-500">PNG, JPG, GIF up to 10MB</p>
+            {!category && <p className="text-xs text-amber-600 font-medium">Select category first</p>}
+          </div>
+        </div>
+      )}
+      
+      <div className="text-xs text-slate-500">
+        {imageUrls.length} of 3 images uploaded
+      </div>
     </div>
   );
 }
