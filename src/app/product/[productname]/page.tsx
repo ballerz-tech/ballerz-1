@@ -15,12 +15,14 @@ import {
 import { db } from "@/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
+import { useRef } from "react";
 
 type Product = {
   ID: number;
   Description: string;
   Product: string;
   Price: number;
+  OriginalPrice?: number;
   Material?: string;
   ImageUrl1?: string;
   ImageUrl2?: string;
@@ -43,6 +45,12 @@ export default function ProductPage() {
   const [showToast, setShowToast] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  const [isMobile, setIsMobile] = useState(false);
+  const blockNextImageClick = useRef(false);
+
+useEffect(() => {
+  setIsMobile(window.innerWidth < 768);
+}, []);
 
   // Fetch product
   useEffect(() => {
@@ -190,24 +198,41 @@ export default function ProductPage() {
             <div 
               className="relative bg-gray-50 rounded-xl p-4 sm:p-6 overflow-hidden"
               onMouseMove={(e) => {
-                if (!isZoomed) return;
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = ((e.clientX - rect.left) / rect.width) * 100;
-                const y = ((e.clientY - rect.top) / rect.height) * 100;
-                setZoomPosition({ x, y });
-              }}
-              onMouseEnter={() => setIsZoomed(true)}
-              onMouseLeave={() => setIsZoomed(false)}
+  if (!isZoomed || isMobile) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * 100;
+  const y = ((e.clientY - rect.top) / rect.height) * 100;
+  setZoomPosition({ x, y });
+}}
+onMouseEnter={() => !isMobile && setIsZoomed(true)}
+onMouseLeave={() => !isMobile && setIsZoomed(false)}
+
             >
               <img
   src={images[imageIndex]}
   alt={product.Description}
+  onClick={() => {
+  if (!isMobile) return;
+
+  if (blockNextImageClick.current) {
+    blockNextImageClick.current = false;
+    return;
+  }
+
+  setZoomImage(images[imageIndex]);
+}}
+
   className="w-full h-[300px] sm:h-[420px] lg:h-[520px] object-contain cursor-zoom-in transition-transform duration-200"
-  style={isZoomed ? {
-    transform: 'scale(2)',
-    transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`
-  } : {}}
+  style={
+    !isMobile && isZoomed
+      ? {
+          transform: "scale(2)",
+          transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`,
+        }
+      : {}
+  }
 />
+
 
 
               {images.length > 1 && (
@@ -234,7 +259,11 @@ export default function ProductPage() {
                 <img
                   key={i}
                   src={img}
-                  onClick={() => setImageIndex(i)}
+                  onClick={() => {
+  blockNextImageClick.current = true;
+  setImageIndex(i);
+}}
+
                   className={`h-20 w-20 sm:h-24 sm:w-24 object-contain rounded cursor-pointer border-2 ${
                     i === imageIndex ? "border-black" : "border-transparent"
                   }`}
@@ -251,9 +280,26 @@ export default function ProductPage() {
 
             <p className="text-gray-400 mb-6">{product.Product}</p>
 
-            <p className="text-2xl sm:text-3xl font-semibold mb-6">
-              ₹{product.Price}
-            </p>
+            <div className="flex items-center gap-3 mb-6 flex-wrap">
+  {product.OriginalPrice && (
+    <span className="text-gray-400 line-through text-lg sm:text-xl">
+      ₹{product.OriginalPrice}
+    </span>
+  )}
+
+  <span className="text-2xl sm:text-3xl font-semibold">
+    ₹{product.Price}
+  </span>
+
+  {product.OriginalPrice && (
+    <span className="text-green-600 font-semibold text-sm">
+      {Math.round(
+        ((product.OriginalPrice - product.Price) / product.OriginalPrice) * 100
+      )}% OFF
+    </span>
+  )}
+</div>
+
 
             <p className="mb-4">
               <span className="font-semibold">Material:</span>{" "}
@@ -407,6 +453,18 @@ export default function ProductPage() {
     </div>
   </div>
 )}
+{zoomImage && (
+  <div
+    className="fixed inset-0 z-50 bg-black flex items-center justify-center"
+    onClick={() => setZoomImage(null)}
+  >
+    <img
+      src={zoomImage}
+      className="max-w-full max-h-full object-contain"
+    />
+  </div>
+)}
+
 
       {/* Toast Notification */}
       {showToast && (
