@@ -221,7 +221,7 @@ export default function InventoryTable() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mt-4">
             {filteredItems.map((it) => {
             const tags = (it?.Tag ?? "").toString().split(";").map((t: string) => t.trim()).filter(Boolean);
-            const img = it?.ImageUrl1 || it?.ImageUrl2 || it?.ImageUrl3 || "/favicon.ico";
+            const img = it?.ImageUrl1 || it?.ImageUrl2 || it?.ImageUrl3 || "/ob.png";
             return (
               <div key={it.id ?? it.ID ?? it.Product} className="relative flex gap-4 rounded-lg border p-4 bg-slate-50 border-slate-200 shadow-sm">
                 <button

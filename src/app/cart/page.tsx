@@ -331,7 +331,7 @@ postAuthHandled.current = true;
                   prod?.ImageUrl1 ||
                   prod?.ImageUrl2 ||
                   prod?.ImageUrl3 ||
-                  "/favicon.ico";
+                  "/ob.png";
                 const base = prod?.Price != null ? Number(prod.Price) : 0;
                 const custom =
                   it.isCustomized && it.customPrice
@@ -480,7 +480,7 @@ postAuthHandled.current = true;
               >
                 <div className="w-full h-40 relative mb-2 bg-white flex items-center justify-center">
                   <Image
-                    src={p.ImageUrl1 || p.ImageUrl2 || p.ImageUrl3 || "/favicon.ico"}
+                    src={p.ImageUrl1 || p.ImageUrl2 || p.ImageUrl3 || "/ob.png"}
                     alt={p.Description || String(p.ID)}
                     fill
                     className="object-contain"

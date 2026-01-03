@@ -736,7 +736,7 @@ if (storedBuyNow) {
                   {items.map((item) => {
                     const key = String(item.ID);
                     const prod = inventoryMap[key];
-                    const img = prod?.ImageUrl1 || prod?.ImageUrl2 || prod?.ImageUrl3 || "/favicon.ico";
+                    const img = prod?.ImageUrl1 || prod?.ImageUrl2 || prod?.ImageUrl3 || "/ob.png";
                     const basePrice = prod?.Price != null ? Number(prod.Price) : 0;
                     const customPrice = item.isCustomized && item.customPrice ? Number(item.customPrice) : 0;
                     const totalPrice = basePrice + customPrice;

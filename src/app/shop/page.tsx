@@ -21,6 +21,7 @@ function ShopContent() {
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [showFilterPopover, setShowFilterPopover] = useState(false);
+  const [page, setPage] = useState(0);
   const params = useSearchParams();
   const search = params.get("search")?.toLowerCase() || "";
 
@@ -54,6 +55,15 @@ function ShopContent() {
     return s;
   })();
 
+  const pageSize = 20;
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const paginated = sorted.slice(page * pageSize, (page + 1) * pageSize);
+
+  // reset page when filters/search/sort change
+  useEffect(() => {
+    setPage(0);
+  }, [filter, search, sort]);
+
   const defaultCategories = ["Football", "Basketball", "Anime", "Korean"];
   const categories = Array.from(new Set([...defaultCategories, ...products.map(p => p.Product)]));
 
@@ -71,7 +81,9 @@ function ShopContent() {
     <div className="bg-white min-h-screen">
       <main className="px-4 py-8 max-w-6xl mx-auto">
         <div className="mb-4">
-          <div className="text-sm text-gray-400">Showing {sorted.length} products</div>
+          <div className="text-sm text-gray-400">
+            Showing {Math.min(page * pageSize + 1, sorted.length)}-{Math.min((page + 1) * pageSize, sorted.length)} of {sorted.length} products
+          </div>
         </div>
 
         {/* Mobile floating filter button (hidden on desktop) */}
@@ -340,7 +352,7 @@ function ShopContent() {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {sorted.map(p => {
+          {paginated.map(p => {
             const oldPrice = (p as any).OldPrice ?? (p as any).MSRP ?? null;
             const soldOut = !!(p as any).SoldOut;
             const savePct = oldPrice && oldPrice > p.Price ? Math.round(((oldPrice - p.Price) / oldPrice) * 100) : null;
@@ -361,6 +373,28 @@ function ShopContent() {
               </div>
             </Link>
           )})}
+        </div>
+
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page <= 0}
+            aria-label="Previous page"
+            className={`px-4 py-2 rounded ${page <= 0 ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-black text-white hover:opacity-90'}`}
+          >
+            <span className="text-lg">‹</span>
+          </button>
+
+          <div className="text-sm text-gray-600">Page {page + 1} of {totalPages}</div>
+
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page >= totalPages - 1}
+            aria-label="Next page"
+            className={`px-4 py-2 rounded ${page >= totalPages - 1 ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-black text-white hover:opacity-90'}`}
+          >
+            <span className="text-lg">›</span>
+          </button>
         </div>
       </main>
     </div>

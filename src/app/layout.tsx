@@ -17,6 +17,9 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "Ballerz",
   description: "Ballerz E-commerce",
+  icons: {
+    icon: "/ob.png",
+  },
 };
 
 // Marquee Component
@@ -119,6 +122,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/ob.png" />
+      </head>
       <body className={`${montserrat.variable} font-montserrat antialiased bg-white text-gray-900`}>
         <AuthProvider>
           <CartProvider>
